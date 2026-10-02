@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ragnarok Rebuild — Pack report</title>
+    <script>
+      try {
+        var t = localStorage.getItem('rr-guide-theme');
+        if (t) document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+    <style>
+      /* Same palette, type and theme switch as setup/guide.html; change both together.
+         The *-text colours are the edge colours darkened to meet 4.5:1 as text. */
+      :root {
+        color-scheme: light;
+        --bg: #faf9f6;
+        --surface: #fff;
+        --surface-2: #f2f1ec;
+        --border: #dedbd3;
+        --border-strong: #c3beb2;
+        --text: #1c1f23;
+        --strong: #0b0d10;
+        --muted: #525a63;
+        --link: #0a57b0;
+        --accent: #0a57b0;
+        --code-bg: #ebe9e3;
+        --nav-active: #e3ecf7;
+        --stripe: #f7f6f2;
+        --note-bg: #edf3fb;
+        --note-edge: #0a57b0;
+        --warn-bg: #fff5dc;
+        --warn-edge: #b27800;
+        --bad-bg: #fdeceb;
+        --bad-edge: #c0322c;
+        --good-bg: #e8f5eb;
+        --good-edge: #1e8039;
+        --ok-text: #1a7033;
+        --warn-text: #8a5a00;
+        --bad-text: #b02a25;
+        --sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+        --mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+        --r: 8px;
+      }
+      [data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #1a1c20;
+        --surface: #212429;
+        --surface-2: #272b31;
+        --border: #373c44;
+        --border-strong: #4d545e;
+        --text: #e3e5e9;
+        --strong: #f6f7f9;
+        --muted: #aab1ba;
+        --link: #82b8ff;
+        --accent: #82b8ff;
+        --code-bg: #2d3138;
+        --nav-active: #253449;
+        --stripe: #1f2226;
+        --note-bg: #1d2a3b;
+        --note-edge: #82b8ff;
+        --warn-bg: #352c16;
+        --warn-edge: #e5aa2c;
+        --bad-bg: #381e1e;
+        --bad-edge: #f0736c;
+        --good-bg: #19301f;
+        --good-edge: #56c677;
+        --ok-text: #56c677;
+        --warn-text: #e5aa2c;
+        --bad-text: #f0736c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 24px;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 400 1rem/1.6 var(--sans);
+      }
+      ::selection {
+        background: #b9d4f5;
+        color: #0b0d10;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      b,
+      strong {
+        font-weight: 650;
+        color: var(--strong);
+      }
+      .progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--accent);
+        transform-origin: 0 50%;
+        transform: scaleX(0);
+        z-index: 10;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        max-width: 1680px;
+        margin: 0 auto;
+      }
+      nav {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        padding: 32px 16px 40px;
+        border-right: 1px solid var(--border);
+        background: var(--surface-2);
+      }
+      nav .brand {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      nav .title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--strong);
+        margin: 2px 0 14px;
+      }
+      nav a {
+        display: block;
+        padding: 6px 12px;
+        margin: 1px 0;
+        border-radius: 6px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 1rem;
+        line-height: 1.4;
+      }
+      nav a:hover {
+        background: var(--surface);
+        color: var(--strong);
+      }
+      nav a.active {
+        background: var(--nav-active);
+        color: var(--strong);
+        font-weight: 600;
+      }
+      .theme {
+        display: block;
+        width: 100%;
+        margin: 0 0 8px;
+        text-align: left;
+      }
+      main {
+        padding: 40px 44px 120px;
+        min-width: 0;
+      }
+      header.hero {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 28px 32px;
+      }
+      .eyebrow {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      h1,
+      h2 {
+        color: var(--strong);
+        line-height: 1.25;
+        text-wrap: balance;
+      }
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin: 6px 0 10px;
+      }
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 2.6rem 0 0.9rem;
+        padding-top: 1.4rem;
+        border-top: 2px solid var(--border);
+      }
+      #meta {
+        color: var(--text);
+        font-size: 1.05rem;
+        line-height: 1.6;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin: 1.2rem 0 0.4rem;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 14px 16px;
+      }
+      .card .k {
+        font-size: 0.92rem;
+        font-weight: 650;
+        color: var(--strong);
+      }
+      .card .v {
+        font: 600 1.3rem/1.3 var(--mono);
+        color: var(--link);
+        margin-top: 6px;
+      }
+      .card.ok {
+        border-color: color-mix(in srgb, var(--good-edge) 40%, var(--surface));
+      }
+      .card.ok .v {
+        color: var(--ok-text);
+      }
+      .card.warn {
+        border-color: color-mix(in srgb, var(--warn-edge) 45%, var(--surface));
+      }
+      .card.warn .v {
+        color: var(--warn-text);
+      }
+      .card.bad {
+        border-color: color-mix(in srgb, var(--bad-edge) 45%, var(--surface));
+        background: var(--bad-bg);
+      }
+      .card.bad .v {
+        color: var(--bad-text);
+      }
+      .scroll {
+        max-height: 560px;
+        overflow: auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        margin: 0.8rem 0 1.2rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      th {
+        text-align: left;
+        font-size: 0.85rem;
+        font-weight: 650;
+        color: var(--strong);
+        background: var(--surface-2);
+        border-bottom: 2px solid var(--border);
+        padding: 8px 12px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        white-space: nowrap;
+      }
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 7px 12px;
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      tr:nth-child(odd) td {
+        background: var(--stripe);
+      }
+      tr:hover td {
+        background: var(--nav-active);
+      }
+      td.p {
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        word-break: break-all;
+        min-width: 18ch;
+      }
+      #rows td.p {
+        min-width: 34ch;
+      }
+      td.mono {
+        white-space: nowrap;
+      }
+      .pill {
+        display: inline-block;
+        font: 700 0.72rem/1.5 var(--sans);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 1px 8px;
+        border-radius: 999px;
+        color: var(--strong);
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        white-space: nowrap;
+      }
+      .s-found {
+        color: var(--ok-text);
+        background: var(--good-bg);
+        border-color: color-mix(in srgb, var(--good-edge) 45%, var(--surface));
+      }
+      .s-missing {
+        color: var(--bad-text);
+        background: var(--bad-bg);
+        border-color: color-mix(in srgb, var(--bad-edge) 45%, var(--surface));
+      }
+      .s-substituted {
+        color: var(--warn-text);
+        background: var(--warn-bg);
+        border-color: color-mix(in srgb, var(--warn-edge) 45%, var(--surface));
+      }
+      .s-repo {
+        color: var(--link);
+        background: var(--note-bg);
+        border-color: color-mix(in srgb, var(--note-edge) 45%, var(--surface));
+      }
+      .s-waived {
+        color: var(--muted);
+      }
+      .bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 0.6rem 0;
+      }
+      input,
+      select,
+      button {
+        font: 500 0.92rem/1.4 var(--sans);
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        padding: 6px 10px;
+      }
+      input {
+        min-width: 300px;
+      }
+      button {
+        font-weight: 600;
+        cursor: pointer;
+      }
+      input:hover,
+      select:hover,
+      button:hover {
+        border-color: var(--accent);
+      }
+      .note {
+        --edge: var(--note-edge);
+        border: 1px solid color-mix(in srgb, var(--edge) 40%, var(--surface));
+        background: var(--note-bg);
+        padding: 12px 16px;
+        margin: 1rem 0;
+        border-radius: var(--r);
+        max-width: 100ch;
+      }
+      .note.warn {
+        --edge: var(--warn-edge);
+        background: var(--warn-bg);
+      }
+      .note.bad {
+        --edge: var(--bad-edge);
+        background: var(--bad-bg);
+      }
+      .note.good {
+        --edge: var(--good-edge);
+        background: var(--good-bg);
+      }
+      details {
+        margin: 0.8rem 0;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--strong);
+        padding: 4px 0;
+      }
+      summary:hover {
+        color: var(--link);
+      }
+      pre {
+        margin: 0.6rem 0 1rem;
+        max-height: 420px;
+        overflow: auto;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 14px 16px;
+        font: 0.86rem/1.6 var(--mono);
+        color: var(--strong);
+      }
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        nav {
+          position: static;
+          height: auto;
+          padding: 20px 16px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+          /* Hides the whitespace between the inline-block links; everything inside sizes in rem. */
+          font-size: 0;
+        }
+        nav a {
+          display: inline-block;
+          margin: 2px;
+          padding: 4px 10px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          font-size: 0.95rem;
+          background: var(--surface);
+        }
+        nav a.active {
+          border-color: var(--accent);
+        }
+        .theme {
+          width: auto;
+        }
+        main {
+          padding: 28px 18px 96px;
+        }
+        header.hero {
+          padding: 22px 20px;
+        }
+        input {
+          min-width: 0;
+          flex: 1 1 220px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" aria-hidden="true"></div>
+    <div class="layout">
+      <nav>
+        <div class="brand">Pack report</div>
+        <div class="title">Ragnarok Rebuild</div>
+        <button class="theme" type="button">Dark mode</button>
+        <a href="#summary">Summary</a>
+        <a href="#issues-h">Issues</a>
+        <a href="#compare-h">Compared with the fork</a>
+        <a href="#sources-h">Sources</a>
+        <a href="#cats-h">Categories</a>
+        <a href="#maps-h">Maps</a>
+        <a href="#catalog-h">Catalog</a>
+        <a href="#cleanup-h">Project cleanup</a>
+      </nav>
+      <main>
+        <header class="hero" id="summary">
+          <div class="eyebrow">rr pack</div>
+          <h1>Rebuild resource pack</h1>
+          <div id="meta"></div>
+        </header>
+        <div class="cards" id="cards"></div>
+
+        <h2 id="issues-h">Issues</h2>
+        <div id="issues"></div>
+        <h2 id="compare-h">Compared with the fork's pack</h2>
+        <div id="compare"></div>
+        <h2 id="sources-h">Sources</h2>
+        <div class="scroll"><table id="sources"></table></div>
+        <h2 id="cats-h">Categories</h2>
+        <div class="scroll"><table id="cats"></table></div>
+        <h2 id="maps-h">Maps (verified against Doddler's release walk data)</h2>
+        <div class="bar">
+          <input id="mapq" placeholder="Filter maps" />
+          <select id="mapf">
+            <option value="">All matches</option>
+            <option value="Exact">exact</option>
+            <option value="IgnoringWater">only water differs</option>
+            <option value="Different">cells differ</option>
+            <option value="NoReference">no reference walk data</option>
+            <option value="SizeMismatch">different map size</option>
+            <option value="missing">missing</option>
+          </select>
+        </div>
+        <div class="scroll"><table id="maps"></table></div>
+        <h2 id="catalog-h">Catalog</h2>
+        <div class="bar">
+          <input id="q" placeholder="Search path, reason, note" />
+          <select id="fc"></select>
+          <select id="fs"></select>
+          <select id="fsrc"></select>
+          <button id="prev">Prev</button>
+          <button id="next">Next</button>
+          <span class="muted" id="pageinfo"></span>
+        </div>
+        <div class="scroll"><table id="rows"></table></div>
+        <h2 id="cleanup-h">Project cleanup</h2>
+        <div id="cleanup"></div>
+      </main>
+    </div>
+    <script>
+      const D = /*DATA*/null;
+      const $ = (id) => document.getElementById(id),
+        esc = (s) =>
+          String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+      const sz = (b) =>
+        b >= 1073741824
+          ? (b / 1073741824).toFixed(2) + ' GB'
+          : b >= 1048576
+            ? (b / 1048576).toFixed(1) + ' MB'
+            : (b / 1024).toFixed(0) + ' KB';
+      const pill = (s) => `<span class="pill s-${s}">${s}</span>`;
+      $('meta').innerHTML =
+        `Generated ${esc(D.generated)} in ${esc(D.elapsed)} · repo <span class="mono">${esc(D.repo)}</span> · pack <span class="mono">${esc(D.outDir)}</span>${D.built ? '' : ' · catalog only (not built)'}`;
+      const S = D.summary;
+      const card = (k, v, c = '') => `<div class="card ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+      $('cards').innerHTML =
+        card('Files in pack', S.packFiles.toLocaleString()) +
+        card('Pack size', sz(S.packBytes)) +
+        card('References', S.references.toLocaleString()) +
+        card('Missing (required)', S.missing, S.missing ? 'bad' : 'ok') +
+        card('Missing (optional)', S.optionalMissing, S.optionalMissing ? 'warn' : 'ok') +
+        card('Substituted', S.substituted, S.substituted ? 'warn' : '') +
+        card('From repo', S.repo) +
+        card('Waived', S.waived, S.waived ? 'warn' : '') +
+        card('Conflicts', S.conflicts) +
+        card('Maps exact', `${S.mapsExact}/${S.maps}`, S.mapsExact === S.maps ? 'ok' : 'warn');
+      const R = D.rows.map((r) => ({
+        p: r[0],
+        c: D.categories[r[1]],
+        s: D.statuses[r[2]],
+        src: r[3] >= 0 ? D.sources[r[3]].name : '',
+        size: r[4],
+        why: r[5],
+        note: r[6],
+        others: r[7],
+        opt: !!(r[8] & 1),
+        chk: !!(r[8] & 2),
+        sha: r[9],
+      }));
+      function tbl(head, rows) {
+        return `<tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr>` + rows.join('');
+      }
+      const miss = R.filter((r) => r.s === 'missing' && !r.opt),
+        sub = R.filter((r) => r.s === 'substituted'),
+        optm = R.filter((r) => r.s === 'missing' && r.opt),
+        waived = R.filter((r) => r.s === 'waived');
+      const badMaps = D.maps.filter((m) => m.Match !== 'Exact');
+      let h = '';
+      h += miss.length
+        ? `<div class="note bad"><b>${miss.length}</b> required reference(s) have no file in any source.</div><div class="scroll"><table>${tbl(
+            ['path', 'category', 'referenced by'],
+            miss.map((r) => `<tr><td class="p">${esc(r.p)}</td><td>${esc(r.c)}</td><td>${esc(r.why)}</td></tr>`),
+          )}</table></div>`
+        : `<div class="note good">Every required reference resolves to a file.</div>`;
+      if (sub.length)
+        h += `<details open><summary>${sub.length} substituted (no client ships them; an alias stands in)</summary><div class="scroll"><table>${tbl(
+          ['path', 'category', 'note', 'referenced by'],
+          sub.map(
+            (r) =>
+              `<tr><td class="p">${esc(r.p)}</td><td>${esc(r.c)}</td><td>${esc(r.note)}</td><td>${esc(r.why)}</td></tr>`,
+          ),
+        )}</table></div></details>`;
+      if (waived.length)
+        h += `<details open><summary>${waived.length} waived (known absences, with the reason and what would fill them)</summary><div class="scroll"><table>${tbl(
+          ['path', 'category', 'reason', 'referenced by'],
+          waived.map(
+            (r) =>
+              `<tr><td class="p">${esc(r.p)}</td><td>${esc(r.c)}</td><td>${esc(r.note)}</td><td>${esc(r.why)}</td></tr>`,
+          ),
+        )}</table></div></details>`;
+      if (optm.length)
+        h += `<details><summary>${optm.length} optional reference(s) missing (collection art, card art, sprite sound events, server-only music)</summary><div class="scroll"><table>${tbl(
+          ['path', 'category', 'referenced by'],
+          optm.map((r) => `<tr><td class="p">${esc(r.p)}</td><td>${esc(r.c)}</td><td>${esc(r.why)}</td></tr>`),
+        )}</table></div></details>`;
+      h += `<details ${badMaps.length ? 'open' : ''}><summary>${badMaps.length} map(s) without an exact walk-data match</summary><div class="scroll"><table>${tbl(
+        ['map', 'client', 'source', 'match', 'note'],
+        badMaps.map(
+          (m) =>
+            `<tr><td class="p">${esc(m.Code)}</td><td>${m.Client ? 'yes' : 'server only'}</td><td>${esc(m.Source ?? '—')} ${esc(m.SourceMap && m.SourceMap !== m.Code ? '(' + m.SourceMap + ')' : '')}</td><td>${esc(m.walk)}</td><td>${esc(m.Note ?? (m.WalkFromReference ? 'server uses the reference walk data' : ''))}</td></tr>`,
+        ),
+      )}</table></div></details>`;
+      if (D.orphans.length)
+        h += `<details><summary>${D.orphans.length} unpaired sprite file(s) left out: an .act without its .spr (or the reverse) in every source</summary><pre class="mono">${esc(D.orphans.join('\n'))}</pre></details>`;
+      if (D.log.length)
+        h += `<details><summary>${D.log.length} read warning(s)</summary><pre class="mono">${esc(D.log.join('\n'))}</pre></details>`;
+      $('issues').innerHTML = h;
+      const X = D.compared;
+      let x = '';
+      if (!X)
+        x = `<div class="note">${D.built ? "No fingerprint of the fork's pack (setup/pack/fingerprint.tsv) to compare with." : 'Only a built pack is compared.'}</div>`;
+      else if (X.same)
+        x = `<div class="note good">Identical to the fork's pack (fingerprint from ${esc(X.generated)}): all ${X.files.toLocaleString()} files, every map choice and every server walk file match.</div>`;
+      else {
+        x += `<div class="note warn"><b>${X.identical.toLocaleString()}</b> of the fork's ${X.files.toLocaleString()} files are identical (fingerprint from ${esc(X.generated)}). ${X.different.length} differ, ${X.missing.length} are missing and ${X.extra.length} are extra; ${X.maps.length} map(s) and ${X.walks.length} server walk file(s) differ.</div>`;
+        if (X.releaseHint)
+          x += `<div class="note">${esc(X.releaseHint[0].toUpperCase() + X.releaseHint.slice(1))}.</div>`;
+        if (X.bySource.length)
+          x += `<div class="note">Where the fork took the different and missing files from. Adding a client like these as a source, or using the fork's rebuild-pack.grf, closes the gap.</div><div class="scroll"><table>${tbl(
+            ['affected', 'of its', "source in the fork's pack"],
+            X.bySource.map(
+              (b) =>
+                `<tr><td>${b.affected.toLocaleString()}</td><td>${b.total.toLocaleString()}</td><td>${esc(b.source)}</td></tr>`,
+            ),
+          )}</table></div>`;
+        const list = (n, title, head, rows, open) =>
+          rows.length
+            ? `<details ${open ? 'open' : ''}><summary>${rows.length} ${title}</summary><div class="scroll"><table>${tbl(
+                head,
+                rows.map((r) => `<tr>${r.map((c, i) => `<td class="${i ? '' : 'p'}">${esc(c)}</td>`).join('')}</tr>`),
+              )}</table></div></details>`
+            : '';
+        x += list('m', 'map(s) chose a different version (or have none)', ['map', 'fork', 'this pack'], X.maps, true);
+        x += list(
+          'd',
+          'file(s) with different contents',
+          ['path', 'fork took it from', 'this pack took it from'],
+          X.different,
+        );
+        x += list('s', 'file(s) the fork has and this pack lacks', ['path', 'fork took it from'], X.missing);
+        x += list('e', 'extra file(s) only this pack has', ['path', 'this pack took it from'], X.extra);
+        if (X.walks.length)
+          x += `<details><summary>${X.walks.length} server walk file(s) differ</summary><pre class="mono">${esc(X.walks.join('\n'))}</pre></details>`;
+      }
+      $('compare').innerHTML = x;
+      $('sources').innerHTML = tbl(
+        ['priority', 'source', 'kind', 'files in source', 'used in pack', 'bytes used', 'location'],
+        D.sources.map(
+          (s, i) =>
+            `<tr><td>${i + 1}</td><td>${esc(s.name)}</td><td>${esc(s.kind)}</td><td>${s.files.toLocaleString()}</td><td>${s.used.toLocaleString()}</td><td>${sz(s.bytes)}</td><td class="p">${esc(s.location)}</td></tr>`,
+        ),
+      );
+      $('cats').innerHTML = tbl(
+        [
+          'category',
+          'refs',
+          'found',
+          'subst.',
+          'repo',
+          'missing',
+          'opt. missing',
+          'size',
+          ...D.sources.map((s) => esc(s.name)),
+        ],
+        D.perCategory.map(
+          (c) =>
+            `<tr><td>${esc(c.name)}</td><td>${c.total}</td><td>${c.found}</td><td>${c.substituted || ''}</td><td>${c.repo || ''}</td><td style="color:${c.missing ? 'var(--bad-text)' : 'inherit'}">${c.missing || ''}</td><td>${c.optionalMissing || ''}</td><td>${sz(c.bytes)}</td>${c.bySource.map((n) => `<td>${n || ''}</td>`).join('')}</tr>`,
+        ),
+      );
+      function drawMaps() {
+        const q = $('mapq').value.toLowerCase(),
+          f = $('mapf').value;
+        const ms = D.maps.filter(
+          (m) =>
+            (!q || (m.Code + ' ' + m.Name).toLowerCase().includes(q)) &&
+            (!f || (f === 'missing' ? !m.Source : m.Match === f)),
+        );
+        $('maps').innerHTML = tbl(
+          ['map', 'name', 'used by', 'source', 'rsw', 'walk vs reference', 'candidates'],
+          ms.map(
+            (m) =>
+              `<tr><td class="p">${esc(m.Code)}</td><td>${esc(m.Name)}</td><td>${m.Client ? 'client+server' : 'server'}</td><td>${esc(m.Source ?? '—')}${m.SourceMap && m.SourceMap !== m.Code ? ' <span class="muted">as ' + esc(m.SourceMap) + '</span>' : ''}</td><td>${m.RswVersion ? ((m.RswVersion / 10) | 0) + '.' + (m.RswVersion % 10) : ''}${m.Downgraded ? ' → 2.1' : ''}</td><td>${esc(m.walk)}</td><td class="muted">${esc(m.candidates.join(' | '))}</td></tr>`,
+          ),
+        );
+      }
+      $('mapq').oninput = drawMaps;
+      $('mapf').onchange = drawMaps;
+      drawMaps();
+      $('fc').innerHTML =
+        '<option value="">all categories</option>' + D.categories.map((c) => `<option>${esc(c)}</option>`).join('');
+      $('fs').innerHTML =
+        '<option value="">all statuses</option>' + D.statuses.map((s) => `<option>${s}</option>`).join('');
+      $('fsrc').innerHTML =
+        '<option value="">all sources</option>' + D.sources.map((s) => `<option>${esc(s.name)}</option>`).join('');
+      let page = 0,
+        filtered = R;
+      const PS = 250;
+      function filter() {
+        const q = $('q').value.toLowerCase(),
+          c = $('fc').value,
+          s = $('fs').value,
+          src = $('fsrc').value;
+        filtered = R.filter(
+          (r) =>
+            (!c || r.c === c) &&
+            (!s || r.s === s) &&
+            (!src || r.src === src) &&
+            (!q || (r.p + ' ' + r.why + ' ' + r.note).toLowerCase().includes(q)),
+        );
+        page = 0;
+        draw();
+      }
+      function draw() {
+        const pages = Math.max(1, Math.ceil(filtered.length / PS));
+        page = Math.min(page, pages - 1);
+        $('pageinfo').textContent = `${filtered.length.toLocaleString()} rows · page ${page + 1}/${pages}`;
+        $('rows').innerHTML = tbl(
+          ['path', 'category', 'status', 'source', 'size', 'referenced by', 'note', 'differs in', 'sha1'],
+          filtered
+            .slice(page * PS, page * PS + PS)
+            .map(
+              (r) =>
+                `<tr><td class="p">${esc(r.p)}${r.chk ? ' <span class="muted">(check)</span>' : ''}${r.opt ? ' <span class="muted">(optional)</span>' : ''}</td><td>${esc(r.c)}</td><td>${pill(r.s)}</td><td>${esc(r.src)}</td><td class="mono">${r.size ? sz(r.size) : ''}</td><td>${esc(r.why)}</td><td>${esc(r.note)}</td><td class="muted">${esc(r.others)}</td><td class="mono muted">${esc(r.sha)}</td></tr>`,
+            ),
+        );
+      }
+      ['q'].forEach((i) => ($(i).oninput = filter));
+      ['fc', 'fs', 'fsrc'].forEach((i) => ($(i).onchange = filter));
+      $('prev').onclick = () => {
+        page = Math.max(0, page - 1);
+        draw();
+      };
+      $('next').onclick = () => {
+        page++;
+        draw();
+      };
+      filter();
+      const C = D.cleanup,
+        labels = {
+          safe: 'Safe to delete',
+          'local-regenerable': 'Local, regenerable (deleting costs a rebuild)',
+          'upstream-sparse': 'Tracked upstream: delete and list in fork-overrides.txt, or hide with sparse-checkout',
+          review: 'Review before removing',
+          keep: 'Keep',
+        };
+      $('cleanup').innerHTML =
+        `<div class="note">To delete a file upstream tracks, also list its path in <span class="mono">setup\\fork-overrides.txt</span>, so <span class="mono">rr sync</span> keeps it deleted. Only list files upstream no longer edits, because sync drops upstream's changes to listed paths. Otherwise hide the file locally with <span class="mono">git sparse-checkout</span>.</div>` +
+        Object.keys(labels)
+          .map((k) => {
+            const xs = C.filter((c) => c.Safety === k);
+            if (!xs.length) return '';
+            const tot = xs.reduce((a, c) => a + c.Size, 0);
+            return `<details ${k === 'safe' || k === 'review' ? 'open' : ''}><summary>${labels[k]} — ${xs.length} item(s), ${sz(tot)}</summary><div class="scroll"><table>${tbl(
+              ['path', 'kind', 'size', 'evidence'],
+              xs.map(
+                (c) =>
+                  `<tr><td class="p">${esc(c.Path)}</td><td>${esc(c.Kind)}</td><td class="mono">${c.Size ? sz(c.Size) : ''}</td><td>${esc(c.Evidence)}</td></tr>`,
+              ),
+            )}</table></div></details>`;
+          })
+          .join('');
+      const root = document.documentElement,
+        themeButton = document.querySelector('.theme');
+      function showTheme() {
+        themeButton.textContent = root.dataset.theme === 'dark' ? 'Light mode' : 'Dark mode';
+      }
+      themeButton.onclick = () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        try {
+          localStorage.setItem('rr-guide-theme', root.dataset.theme);
+        } catch (e) {}
+        showTheme();
+      };
+      showTheme();
+      const navLinks = [...document.querySelectorAll('nav a[href^="#"]')],
+        progress = document.querySelector('.progress');
+      let pending = false;
+      function onScroll() {
+        pending = false;
+        const line = innerHeight * 0.3;
+        let current = null,
+          currentTop = -Infinity;
+        navLinks.forEach((a) => {
+          const t = $(a.getAttribute('href').slice(1));
+          if (!t) return;
+          const top = t.getBoundingClientRect().top;
+          if (top <= line && top > currentTop) {
+            current = a;
+            currentTop = top;
+          }
+        });
+        navLinks.forEach((a) => a.classList.toggle('active', a === current));
+        const max = root.scrollHeight - innerHeight;
+        progress.style.transform = `scaleX(${max > 0 ? Math.min(1, scrollY / max) : 0})`;
+      }
+      addEventListener(
+        'scroll',
+        () => {
+          if (!pending) {
+            pending = true;
+            requestAnimationFrame(onScroll);
+          }
+        },
+        { passive: true },
+      );
+      addEventListener('resize', onScroll);
+      onScroll();
+    </script>
+  </body>
+</html>

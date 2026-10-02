@@ -1,0 +1,18 @@
+{
+  "comment": "Stand-ins for files no source client ships. 'sprites' keys/values are data-relative paths without extension and alias both .spr and .act; 'files' alias one exact file. Upstream's TemporaryMonsterAliases are applied automatically. Put real replacements in the Custom source folder instead of aliasing when you have them.",
+  "sprites": {
+    "sprite/몬스터/verit": { "use": "sprite/몬스터/mutant_verit", "why": "No client ships a verit sprite, the 2009 ones included; kRO keeps Verit's art as mutant_verit, pixel-identical to the Verit in Doddler's June 2025 release" },
+    "sprite/몬스터/fungus": { "use": "sprite/몬스터/poison_spore", "why": "Rebuild custom monster (DoddlerCustomMonsters); closest Plant/Poison mushroom" },
+    "sprite/인간족/몸통/남/무희바지_여": { "use": "sprite/인간족/몸통/여/무희바지_여", "why": "Dancer is female-only; playerclass points the male slot at the female body" },
+    "sprite/인간족/몸통/여/바드_남": { "use": "sprite/인간족/몸통/남/바드_남", "why": "Bard is male-only; playerclass points the female slot at the male body" }
+  },
+  "waived": {
+    "bgm/ToS-3rdWave.flac": "Rebuild's Okolnir track (que_qsch01), '3rd Wave' by Questrosound from the Tree of Savior soundtrack; it is not part of any client. Drop it into the Custom folder as bgm/ToS-3rdWave.flac; until then that map plays no music. The fork's copy is the clip from Doddler's June 2025 release (music_assets_assets/music/tos-3rdwave.flac.bundle, exported with UnityPy and saved as FLAC with ffmpeg). An MP3 of the track also works: ffmpeg -i <file>.mp3 -map 0:a ToS-3rdWave.flac.",
+    "sprite/방패/*/*_메모라이즈북.spr": "Books worn in the shield slot (Memory Book, Exorcism Bible, Magic Bible) have no equipped sprite in any client, the 2009 ones included; the character shows no shield, exactly as in kRO."
+  },
+  "files": {
+    "wav/inspiration.wav": { "use": "wav/effect/lg_inspiration.wav", "why": "potion effect sound missing from all clients; nearest named sound" },
+    "texture/effect/hl_blind.tga": { "use": "texture/effect/handicapstate_deepblind.tga", "why": "Blind status icon; kRO only ships the Deep Blind icon now" },
+    "wav/spore_move.wav": { "use": "wav/spore_move1.wav", "why": "move sound event of the spore/deathspore/fungus ACTs; clients only ship spore_move1/2" }
+  }
+}
