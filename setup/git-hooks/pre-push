@@ -1,0 +1,16 @@
+#!/bin/sh
+# Installed by `rr git-setup`. master/main may only be pushed when they equal upstream exactly,
+# which keeps the fork's copy a pure fast-forward mirror of Doddler's branch.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/master|refs/heads/main)
+      name=${remote_ref#refs/heads/}
+      upstream_sha=$(git rev-parse --verify -q "refs/remotes/upstream/$name")
+      if [ -z "$upstream_sha" ] || [ "$local_sha" != "$upstream_sha" ]; then
+        echo "rr: refusing to push $name: it must equal upstream/$name. Run 'rr sync' instead." >&2
+        exit 1
+      fi
+      ;;
+  esac
+done
+exit 0

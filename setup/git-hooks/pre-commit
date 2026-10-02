@@ -1,0 +1,11 @@
+#!/bin/sh
+# Installed by `rr git-setup`. master/main mirror upstream, so they never get local commits.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+case "$branch" in
+  master|main)
+    echo "rr: refusing to commit on '$branch'; it mirrors upstream. Switch to your work branch (git switch dev)." >&2
+    echo "rr: bypass once with 'git commit --no-verify' if you really mean it." >&2
+    exit 1
+    ;;
+esac
+exit 0

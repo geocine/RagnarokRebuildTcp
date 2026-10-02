@@ -1,0 +1,4 @@
+*.local.*
+!config.local.example.json
+tools/*/bin/
+tools/*/obj/
