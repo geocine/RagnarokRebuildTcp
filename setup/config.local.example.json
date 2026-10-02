@@ -1,0 +1,12 @@
+{
+  "workDir": "D:\\RagnarokRebuildData",
+  "releaseArchive": "D:\\Downloads\\RagnarokRebuild_June2025_Client+Server2.7z",
+  "packSources": [
+    { "name": "kRO 2024", "path": "D:\\Games\\kRO\\data.grf" },
+    { "name": "kRO 2020", "path": "D:\\Games\\kRO 2020\\data.grf" },
+    { "name": "Other client", "path": "D:\\Games\\Other\\data.grf" },
+    { "name": "kRO BGM", "path": "D:\\Games\\kRO\\BGM", "type": "folder", "prefix": "bgm" },
+    { "name": "Classic client", "path": "D:\\Games\\Classic\\data.grf" },
+    { "name": "2009 client", "path": "D:\\Games\\2009\\data.grf" }
+  ]
+}

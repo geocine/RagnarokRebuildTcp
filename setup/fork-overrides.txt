@@ -1,0 +1,14 @@
+# Upstream paths this fork replaces or removes. After merging upstream, 'rr sync' puts each one
+# back the way the fork had it (its own version, or deleted), so upstream's changes to them are
+# dropped. Only list files the fork owns outright or that upstream has abandoned.
+# A trailing / covers a whole folder.
+README.md
+RoRebuildOld/
+RoRebuildServer/RoRebuildServer/Keys/
+RoRebuildServer/RebuildSharedData/Networking/PacketType.cs.orig
+RebuildClient/Assets/Scripts/effects.zip
+RebuildClient/Assets/Scripts/effects.zip.meta
+RebuildClient/Assets/3rdParty/Websocket.rar
+RebuildClient/Assets/3rdParty/Websocket.rar.meta
+RebuildClient/Assets/3rdParty/LeanTween/Framework/LeanTween.dll.zip
+RebuildClient/Assets/3rdParty/LeanTween/Framework/LeanTween.dll.zip.meta

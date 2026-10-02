@@ -1,0 +1,8 @@
+{
+  "workBranch": "dev",
+  "upstreamUrl": "https://github.com/Doddler/RagnarokRebuildTcp.git",
+  "forkUrl": "https://github.com/geocine/RagnarokRebuildTcp.git",
+  "importProfile": "full",
+  "serverLaunchProfile": "RoRebuildServer",
+  "buildOutput": "RebuildClient/Build/PC"
+}
