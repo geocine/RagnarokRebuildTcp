@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ragnarok Rebuild — Fork Setup Guide</title>
+<script>try { var t = localStorage.getItem('rr-guide-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+  /* Light by default; every text colour meets WCAG AA (4.5:1) on the surface it sits on. */
+  :root {
+    color-scheme: light;
+    --bg: #faf9f6; --surface: #ffffff; --surface-2: #f2f1ec; --border: #dedbd3; --border-strong: #c3beb2;
+    --text: #1c1f23; --strong: #0b0d10; --muted: #525a63;
+    --link: #0a57b0; --link-hover: #063e80; --accent: #0a57b0; --on-accent: #ffffff;
+    --code-bg: #ebe9e3; --comment: #5a646e; --nav-active: #e3ecf7; --stripe: #f7f6f2;
+    --note-bg: #edf3fb; --note-edge: #0a57b0;
+    --warn-bg: #fff5dc; --warn-edge: #b27800;
+    --bad-bg: #fdeceb; --bad-edge: #c0322c;
+    --good-bg: #e8f5eb; --good-edge: #1e8039;
+    --sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    --r: 8px; --t: 150ms ease;
+  }
+  /* Dark mode avoids pure black and pure white, which smear together (halation) for many readers. */
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1a1c20; --surface: #212429; --surface-2: #272b31; --border: #373c44; --border-strong: #4d545e;
+    --text: #e3e5e9; --strong: #f6f7f9; --muted: #aab1ba;
+    --link: #82b8ff; --link-hover: #b3d3ff; --accent: #82b8ff; --on-accent: #10213a;
+    --code-bg: #2d3138; --comment: #9aa2ac; --nav-active: #253449; --stripe: #1f2226;
+    --note-bg: #1d2a3b; --note-edge: #82b8ff;
+    --warn-bg: #352c16; --warn-edge: #e5aa2c;
+    --bad-bg: #381e1e; --bad-edge: #f0736c;
+    --good-bg: #19301f; --good-edge: #56c677;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 400 1.125rem/1.7 var(--sans); }
+  ::selection { background: #b9d4f5; color: #0b0d10; }
+  a { color: var(--link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--link-hover); text-decoration-thickness: 2px; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  b, strong { font-weight: 650; color: var(--strong); }
+
+  .progress { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); z-index: 10; }
+  .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); max-width: 1280px; margin: 0 auto; }
+
+  nav { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 32px 18px 40px; border-right: 1px solid var(--border); background: var(--surface-2); }
+  nav .brand { font-size: .8rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  nav .title { font-size: 1.2rem; font-weight: 700; color: var(--strong); margin: 2px 0 14px; }
+  nav a { display: block; padding: 6px 12px; margin: 1px 0; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 1rem; line-height: 1.4; }
+  nav a:hover { background: var(--surface); color: var(--strong); }
+  nav a.active { background: var(--nav-active); color: var(--strong); font-weight: 600; }
+  nav .group { font-size: .78rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 22px 0 6px 15px; }
+  .theme { display: block; width: 100%; margin: 0 0 8px; padding: 7px 12px; font: 600 .9rem var(--sans); color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; text-align: left; }
+  .theme:hover { border-color: var(--accent); }
+
+  main { padding: 48px 56px 140px; min-width: 0; max-width: 960px; }
+  main p, main li { max-width: 72ch; }
+  header.hero { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px 36px; margin-bottom: 16px; }
+  header.hero p, header.hero p.muted { color: var(--text); font-size: 1.2rem; line-height: 1.65; margin-bottom: 0; }
+  .eyebrow { font-size: .85rem; font-weight: 600; color: var(--muted); }
+  h1, h2, h3 { color: var(--strong); line-height: 1.25; text-wrap: balance; }
+  h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: -.015em; margin: 8px 0 14px; }
+  h2 { font-size: 1.7rem; font-weight: 700; letter-spacing: -.01em; margin: 3.2rem 0 1rem; padding-top: 1.6rem; border-top: 2px solid var(--border); }
+  h3 { font-size: 1.28rem; font-weight: 650; margin: 2.2rem 0 .6rem; }
+  p { margin: 0 0 1.05em; text-wrap: pretty; }
+  .muted { color: var(--muted); }
+  ul, ol { padding-left: 1.5em; margin: .4em 0 1.2em; }
+  li { margin: .45em 0; padding-left: .2em; }
+  li::marker { color: var(--muted); }
+
+  code { font-family: var(--mono); font-size: .86em; background: var(--code-bg); padding: .12em .4em; border-radius: 5px; color: var(--strong); overflow-wrap: anywhere; }
+  .code { position: relative; margin: 1.4rem 0 1.4rem; }
+  pre { margin: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; overflow-x: auto; font: .92rem/1.7 var(--mono); color: var(--strong); tab-size: 4; }
+  .code pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre .c { color: var(--comment); font-style: italic; }
+  .copy { position: absolute; top: -14px; right: 14px; font: 600 .8rem var(--sans); color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+  .copy:hover { border-color: var(--accent); color: var(--strong); }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 1rem 0 1.6rem; font-size: 1rem; line-height: 1.55; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+  th { text-align: left; font-size: .92rem; font-weight: 650; color: var(--strong); background: var(--surface-2); border-bottom: 2px solid var(--border); padding: 10px 14px; }
+  td { border-bottom: 1px solid var(--border); padding: 10px 14px; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  tr:nth-child(odd) td { background: var(--stripe); }
+  tr:hover td { background: var(--nav-active); }
+  td.mono, .mono { font-family: var(--mono); font-size: .88em; overflow-wrap: break-word; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 1.2rem 0 1.4rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; }
+  .card .k { font-size: .95rem; font-weight: 650; color: var(--strong); }
+  .card .v { font: 600 .92rem/1.5 var(--mono); color: var(--link); margin-top: 6px; overflow-wrap: anywhere; }
+  .card .d { font-size: .95rem; line-height: 1.5; color: var(--muted); margin-top: 6px; }
+
+  .note { --edge: var(--note-edge); border: 1px solid color-mix(in srgb, var(--edge) 40%, var(--surface)); background: var(--note-bg); padding: 14px 18px; margin: 1.2rem 0; border-radius: var(--r); max-width: 80ch; }
+  .note.warn { --edge: var(--warn-edge); background: var(--warn-bg); }
+  .note.bad { --edge: var(--bad-edge); background: var(--bad-bg); }
+  .note.good { --edge: var(--good-edge); background: var(--good-bg); }
+  .note code { background: color-mix(in srgb, var(--code-bg) 70%, var(--surface)); }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 1.2rem 0 1.4rem; }
+  .steps > li { counter-increment: step; position: relative; padding: 2px 0 18px 44px; margin: 0 0 0 16px; border-left: 2px solid var(--border); max-width: none; }
+  .steps > li::before { content: counter(step); position: absolute; left: -17px; top: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font: 700 .95rem/32px var(--sans); text-align: center; }
+  .steps > li:last-child { border-left-color: transparent; }
+
+  .tag { display: inline-block; font: 700 .72rem/1.5 var(--sans); letter-spacing: .05em; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; color: var(--strong); background: var(--surface-2); border: 1px solid var(--border-strong); vertical-align: 2px; }
+  .tag.opt { color: var(--muted); }
+  .diagram-wrap { overflow-x: auto; }
+  .diagram { font: .9rem/1.6 var(--mono); }
+  footer { margin-top: 72px; color: var(--muted); font-size: .95rem; border-top: 2px solid var(--border); padding-top: 18px; }
+
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    table { display: block; overflow-x: auto; }
+    header.hero { padding: 24px 22px; }
+    h1 { font-size: 1.85rem; }
+    nav { position: static; height: auto; padding: 20px 16px; border-right: 0; border-bottom: 1px solid var(--border); }
+    nav .group { display: none; }
+    nav a { display: inline-block; margin: 2px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .95rem; background: var(--surface); }
+    nav a.active { border-color: var(--accent); }
+    .theme { width: auto; }
+    main { padding: 32px 20px 96px; }
+    body { font-size: 1.0625rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"></div>
+<div class="layout">
+<nav>
+  <div class="brand">Fork guide</div>
+  <div class="title">Ragnarok Rebuild</div>
+  <button class="theme" type="button">Dark mode</button>
+  <a href="#tldr">TL;DR</a>
+  <a href="#layout">What lives where</a>
+  <div class="group">Setup</div>
+  <a href="#prereqs">Prerequisites</a>
+  <a href="#first-time">First-time setup</a>
+  <a href="#bootstrap">From a bare machine</a>
+  <a href="#pack">Our own pack</a>
+  <a href="#own-clients">From your own clients</a>
+  <a href="#daily">Run &amp; play</a>
+  <a href="#build">Build the client</a>
+  <a href="#release">Share a release</a>
+  <a href="#master">On Doddler's master</a>
+  <div class="group">Resources</div>
+  <a href="#resources">Client data import</a>
+  <a href="#lighting">Lighting &amp; minimaps</a>
+  <a href="#snapshots">Snapshots</a>
+  <a href="#gaps">Known gaps</a>
+  <div class="group">Maintenance</div>
+  <a href="#resume">Stopping &amp; resuming</a>
+  <a href="#disk">Disk space</a>
+  <a href="#trouble">Troubleshooting</a>
+  <a href="#reference">Command reference</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">geocine/RagnarokRebuildTcp · branch dev</div>
+  <h1>Setting up, running and maintaining the Ragnarok Rebuild fork</h1>
+  <p class="muted">Everything is driven by one helper, <code>rr</code>, in the repo root. It wraps the git fork wiring, the Unity CLI, our own resource pack built from several kRO clients, the .NET server and headless Unity imports and builds. Every command is safe to rerun.</p>
+</header>
+
+<h2 id="tldr">TL;DR</h2>
+<p>Once setup has run, day to day you only need these:</p>
+<div class="code"><pre>.\rr server            <span class="c"># terminal 1: game server on ws://127.0.0.1:5000/ws</span>
+.\rr editor            <span class="c"># open Unity, Ragnarok &gt; Open Main Scene, press Play, log in</span>
+.\rr sync              <span class="c"># pull Doddler's latest changes into your branch</span>
+.\rr doctor            <span class="c"># health check: git, tools, data, import state, disk, half-done work</span></pre></div>
+<p>On a new machine, one line in PowerShell does everything, even with nothing installed. It installs Git if it's missing, clones the fork on <code>dev</code> and runs <code>rr setup</code>. Setup asks for a work folder and your client GRFs, installs the missing tools after one question, then does the rest. Our own <code>rebuild-pack.grf</code> is enough on its own (<a href="#bootstrap">details</a>):</p>
+<div class="code"><pre>irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1 | iex</pre></div>
+<p>With Git already installed, the same by hand:</p>
+<div class="code"><pre>git clone -b dev https://github.com/geocine/RagnarokRebuildTcp.git
+cd RagnarokRebuildTcp
+.\rr setup             <span class="c"># init, prereqs, git-setup, install-unity, library-link, server-build, update-client, pack, import</span></pre></div>
+<p>To skip <code>rr init</code>'s questions, copy <code>setup\config.local.example.json</code> to <code>setup\config.local.json</code> and set your own paths; <code>rr setup</code> then asks nothing. With a <a href="#snapshots">snapshot</a> in the work folder that matches the pack, <code>rr setup</code> restores it instead of importing: about 10 minutes instead of an hour and a half.</p>
+<div class="code"><pre>.\rr build-client      <span class="c"># Windows player (IL2CPP) into workDir\Build\PC</span>
+.\rr smoke             <span class="c"># proves it works: server + build log in, create a character, enter the world</span>
+.\rr release           <span class="c"># shareable Client + Server download like Doddler's, checked before it's zipped</span></pre></div>
+
+<h2 id="layout">What lives where</h2>
+<p>The repo can live anywhere; it grows to about 11 GB with the imported client. Everything rr generates goes into one work folder (<code>workDir</code>) outside the repo, and the client GRFs are only read, wherever they are.</p>
+<div class="note warn"><b>Keep the Unity Library on an internal SSD.</b> With the Library on a USB drive, the import was disk-bound (the drive at 100% busy, Unity mostly idle). On an internal SSD Unity is CPU-bound and the disks sit idle. <code>rr library-link &lt;folder&gt;</code> moves it, junction included, and <code>rr perf</code> adds Defender exclusions for the project, Library and pack (<code>rr perf undo</code> removes them).</div>
+<div class="cards">
+  <div class="card"><div class="k">Repository</div><div class="v">the clone</div><div class="d">Source, imported assets (maps, sprites, sounds, music)</div></div>
+  <div class="card"><div class="k">Unity cache (Library)</div><div class="v">libraryDir</div><div class="d">Junction from RebuildClient\Library; best on an internal SSD</div></div>
+  <div class="card"><div class="k">Rebuild pack</div><div class="v">workDir\pack</div><div class="d">data\ (import source), walkdata\, rebuild-pack.grf, manifest, report.html</div></div>
+  <div class="card"><div class="k">Custom files (yours)</div><div class="v">workDir\custom</div><div class="d">Highest-priority pack source</div></div>
+  <div class="card"><div class="k">Reference walk data</div><div class="v">workDir\reference\walkdata</div><div class="d">From Doddler's release, for map verification</div></div>
+  <div class="card"><div class="k">Player builds</div><div class="v">workDir\Build\PC</div><div class="d">RebuildClient.exe + content (2.5 GB; 3.7 GB baked); IL2CPP symbols in PC-symbols</div></div>
+  <div class="card"><div class="k">Snapshots</div><div class="v">workDir\snapshots</div><div class="d">Imported client state + Library for fast reinstalls (15 GB; 19.8 GB baked)</div></div>
+  <div class="card"><div class="k">Releases</div><div class="v">workDir\release</div><div class="d">Client + Server downloads from <code>rr release</code>, with their .7z</div></div>
+  <div class="card"><div class="k">Shared files</div><div class="v">workDir\share</div><div class="d">The GRF + snapshot bundle you hand over, with its READMEs</div></div>
+  <div class="card"><div class="k">Unity 6000.3.19f1</div><div class="v">C:\Program Files\Unity\Hub\Editor</div><div class="d">Installed by the Unity CLI</div></div>
+  <div class="card"><div class="k">Client GRFs (read-only)</div><div class="v">packSources</div><div class="d">Your clients and the release archive, listed in config.local.json</div></div>
+</div>
+<p class="muted">Everything under <code>workDir</code> derives from that one setting. Machine-specific paths are in <code>setup\config.local.json</code> (gitignored); defaults for everyone are in <code>setup\config.json</code>.</p>
+
+<h2 id="prereqs">Prerequisites</h2>
+<p>You bring these. rr installs everything else.</p>
+<table>
+  <tr><th>You need</th><th>Why</th></tr>
+  <tr><td>Windows 10 21H1+ or 11, with winget (App Installer, part of Windows)</td><td>Hosts Unity 6; winget installs the tools below</td></tr>
+  <tr><td>A Unity account (free)</td><td>The Personal license batch mode needs. The browser sign-in only happens when no license is activated yet.</td></tr>
+  <tr><td>Our <code>rebuild-pack.grf</code>, or one or more Korean Ragnarok clients (data.grf)</td><td>The repo has no game assets. The fork's pack was built from kRO 2024 and kRO 2020 plus three other clients, all GRF 0x200.</td></tr>
+  <tr><td>Doddler's release archive <span class="tag opt">recommended</span></td><td>Reference walk data to verify every map (<span class="mono">RagnarokRebuild_June2025_Client+Server2.7z</span>). Not needed with <code>rebuild-pack.grf</code>, which carries it.</td></tr>
+</table>
+<p><code>rr prereqs</code> checks the tools, and <code>rr setup</code> runs it first. It shows what's there and what's missing, and compares each drive's free space with what the remaining steps take. Then it installs the missing tools with winget after one question: all, required only, or nothing (<code>-Yes</code> installs without asking). Windows asks for administrator approval for each installer. rr reloads PATH afterwards, so setup carries on in the same window. A tool that only one situation needs is only listed in that situation.</p>
+<table>
+  <tr><th>Tool</th><th>Needed for</th><th>When</th><th>winget id</th></tr>
+  <tr><td>Git</td><td>Fork wiring and syncing</td><td>Always (the bootstrap installs it before cloning)</td><td class="mono">Git.Git</td></tr>
+  <tr><td>.NET 9 SDK</td><td>Server, update-client, the pack tool</td><td>Always. A newer SDK alone isn't enough: the server and tools target net9.0, so they need the .NET 9 runtimes that come with the 9 SDK.</td><td class="mono">Microsoft.DotNet.SDK.9</td></tr>
+  <tr><td>7-Zip</td><td>Reading the release archive</td><td>Only when <code>releaseArchive</code> is set and its walk data isn't extracted yet</td><td class="mono">7zip.7zip</td></tr>
+  <tr><td>Visual Studio 2022 Build Tools, C++ workload <span class="tag opt">optional</span></td><td>IL2CPP compiles the player to C++ with MSVC</td><td>Player builds only (<code>rr build-client</code>, <code>rr smoke</code>). Any VS 2022+ with C++ counts. About 7 GB.</td><td class="mono">Microsoft.VisualStudio.2022.BuildTools</td></tr>
+  <tr><td>Unity CLI, Unity 6000.3.19f1, Windows Build Support (IL2CPP)</td><td>The editor and batch runs</td><td>Always. <code>rr install-unity</code> installs them (8.6 GB).</td><td class="muted">not winget (see below)</td></tr>
+</table>
+<p>Each command also checks its own tools before it starts (<code>rr server</code> checks .NET, <code>rr build-client</code> the C++ toolchain), so a missing tool gets the same install offer instead of a "not recognized" error. <code>rr doctor</code> lists missing tools and points to <code>rr prereqs</code>.</p>
+<p>Free space for a full setup: about 13 GB on C: for Unity (7 GB more for the Build Tools), 11 GB in the repo for the imported assets, 10 GB for the Library and 3 GB for the pack. Player builds later add about 25 GB to the work folder, and each snapshot 15 GB.</p>
+<div class="note warn"><b>Use the standalone Unity CLI, not the winget build.</b> <code>winget install Unity.CLI</code> installs an MSIX package. Its sandbox virtualizes AppData, so the editor installer it launches aborts silently ("exited with code 2"). <code>rr install-unity</code> swaps it for the build from <code>https://unity.com/install.ps1</code> in <code>%LOCALAPPDATA%\Unity\bin</code>, which runs installers normally.</div>
+
+<h2 id="first-time">First-time setup</h2>
+<h3 id="bootstrap">From a bare machine</h3>
+<p><code>setup\bootstrap.ps1</code> is one file that runs before anything is installed, Git included, in the Windows PowerShell 5.1 that ships with Windows:</p>
+<div class="code"><pre>irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1 | iex</pre></div>
+<p>To pick the folder up front and skip the install question:</p>
+<div class="code"><pre>&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1))) -Dir D:\RagnarokRebuildTcp -Yes</pre></div>
+<ul>
+  <li>It installs Git with winget if it's missing, then asks where to clone. It suggests the fixed drive with the most free space, because the repo grows to about 11 GB with the imported client, and warns about folders inside OneDrive.</li>
+  <li>It clones <code>dev</code> over HTTPS (no SSH key needed) with <code>core.autocrlf=input</code> and long paths on, then runs <code>rr setup</code>.</li>
+  <li>Run it again after an interruption: it reuses the clone and setup carries on. A clone that was cut off before its checkout is cloned again.</li>
+  <li><code>-Repo</code> and <code>-Branch</code> clone another URL or branch.</li>
+  <li>Tested in Windows PowerShell 5.1: a fresh clone into an empty folder, a clone cut off before its checkout, and a rerun on a setup that was stopped during the server build.</li>
+</ul>
+<p>Everything that needs you happens first: <code>rr init</code>'s questions, the install question and the administrator prompts, then the Unity browser sign-in if it's needed. The downloads, builds, pack and import after that run unattended.</p>
+
+<h3>The steps</h3>
+<p><code>.\rr setup</code> runs all of this in order. The individual steps are listed so you can rerun one when something changes.</p>
+<ol class="steps">
+  <li><b>Paths</b> — <code>.\rr init</code> asks for the work folder (it suggests the local drive with the most free space), your client GRFs in priority order, the BGM folder and Doddler's release archive, then writes <code>setup\config.local.json</code>. Given a <code>rebuild-pack.grf</code>, it stops after that one source.</li>
+  <li><b>Prerequisites</b> — <code>.\rr prereqs</code> checks the tools and free space, and installs what's missing with winget after one question. <a href="#prereqs">Details</a>.</li>
+  <li><b>Git</b> — <code>.\rr git-setup</code> points <code>origin</code> at the fork (<code>forkUrl</code> in <code>setup\config.json</code>) and <code>upstream</code> at Doddler with pushing disabled. It also creates the <code>dev</code> branch, installs the master/main guard hooks and sets <code>core.autocrlf=input</code>.</li>
+  <li><b>Unity</b> — <code>.\rr install-unity</code> installs the standalone CLI and the editor version from <code>ProjectVersion.txt</code>, plus Windows Build Support (IL2CPP) because <code>ProjectSettings</code> sets the Standalone backend to IL2CPP (240 MB; nothing else). Without an activated license, it signs you in before the download, so the rest runs unattended, then activates Unity Personal. It also checks for an MSVC toolchain and clears the ~4 GB installer cache.</li>
+  <li><b>Server</b> — <code>.\rr server-build</code> builds <code>RoRebuildServer.sln</code>.</li>
+  <li><b>Shared data</b> — <code>.\rr update-client</code> is <code>updateclient.bat</code> without the <code>pause</code>. It rebuilds GameConfig/RebuildSharedData, copies the DLLs into the client and regenerates <code>StreamingAssets/ClientConfigGenerated</code>. If you haven't touched the shared code, it puts the committed DLLs back so git stays clean.</li>
+  <li><b>Library</b> — <code>rr library-link</code> puts Unity's cache on the work drive behind a junction, so the repo can stay on a small disk.</li>
+  <li><b>Pack</b> — <code>.\rr pack</code> first runs <code>rr reference</code> (Doddler's walk data out of the release archive), then builds our own resource pack from every source. <a href="#pack">Details</a>.</li>
+  <li><b>Import</b> — <code>.\rr import full</code> copies the pack's BGM into <code>Assets\Music</code>, then runs the upstream importers headlessly against the pack: raw copy, effects, water, every map, item and skill icons, then the addressables update. <a href="#resources">Details</a>.</li>
+</ol>
+<div class="note">Unity batch mode can't share the project with an open editor. Close Unity before <code>rr import</code>, <code>bake</code>, <code>build-client</code> or <code>report</code>; rr checks and tells you.</div>
+
+<h2 id="pack">Our own resource pack</h2>
+<p><code>rr pack</code> builds the pack with <code>setup\tools\RebuildPack</code> (.NET 9). It reads the repo's own client config and server data, works out every file Rebuild references, and takes each from the best source. The result is one import-ready pack plus a report that says where every file came from.</p>
+<div class="cards">
+  <div class="card"><div class="k">Files</div><div class="v">24,931</div><div class="d">2.4 GB; the GRF packs it into 758 MB</div></div>
+  <div class="card"><div class="k">References checked</div><div class="v">25,045</div><div class="d">0 unresolved, optional ones included</div></div>
+  <div class="card"><div class="k">Maps verified</div><div class="v">270 / 276</div><div class="d">same layout as Doddler's release</div></div>
+  <div class="card"><div class="k">Build time</div><div class="v">~3.5 min</div><div class="d">~40 s when nothing changed (it still re-verifies every map)</div></div>
+</div>
+<h3>Sources and priority</h3>
+<table>
+  <tr><th>#</th><th>Source</th><th>Used for</th></tr>
+  <tr><td>1</td><td>Custom <span class="mono">(workDir\custom)</span></td><td>Your own files; they override everything else. Same layout as data.grf (<code>sprite\몬스터\x.spr</code>, <code>bgm\x.mp3</code>). The fork's has 38 files no client has: Doddler's custom monster sprites and his edited <code>que_qsch01</code> and <code>prt_fild08</code>, the <code>2009rwc_03</code> debug room, collection art for 7 scroll items, Okolnir's music (<a href="#doddler-extras">below</a>), plus the original Blind icon</td></tr>
+  <tr><td>2</td><td>kRO 2024 (GRF 0x200)</td><td>The primary source: 24,097 files (2.2 GB)</td></tr>
+  <tr><td>3</td><td>kRO 2020 (GRF 0x200)</td><td>157 files kRO 2024 lacks or changed: 3 maps (<code>payon</code> in RSW 2.1, <code>prt_fild00</code> and <code>yuno_fild12</code>), 44 models, 102 model/map textures, 2 sounds</td></tr>
+  <tr><td>4</td><td>Another client (GRF 0x200)</td><td>84 sounds neither kRO GRF has</td></tr>
+  <tr><td>5</td><td>kRO BGM <span class="mono">(the client's BGM folder)</span></td><td>67 music tracks, mapped into the pack as <code>bgm\</code></td></tr>
+  <tr><td>6</td><td>Classic client (GRF 0x200, an old English client)</td><td>13 maps closer to the release than kRO's current versions, including <code>moc_ruins</code>, with the 33 models, 91 textures and 1 sound their 11 client maps use (158 files)</td></tr>
+  <tr><td>7</td><td>2009 client (GRF 0x200, kRO from September 2009)</td><td>8 maps closer to the release than any other source's, including <code>alberta</code>, <code>izlude</code> and <code>prontera</code>, with the 65 models, 243 textures and 1 sound their 7 client maps use (330 files)</td></tr>
+</table>
+<p>Sources can be GRF 0x200 (every client here) or 0x300, the 64-bit format kRO has used since late 2025. The 0x300 reader was tested on a copy of our pack saved as 0x300 by GRF Editor 1.9.1.2's library: the pack built from it was byte-identical. Newer kRO GRFs can also mark entries with Gravity's new encryption (flag <code>0x80</code>). No public tool decodes those, GRF Editor included, so the pack skips them and says how many it skipped; the files then have to come from another source.</p>
+<p>Each file comes from the first source that has it, except maps. Maps are picked by comparing each candidate's walk data with the <b>walk data in Doddler's release</b> (601 files), which is what the live game uses. The tool recreates the importer's walk export byte for byte (<code>.gat</code> cell types plus the RSW water level), so an exact match proves the right map version. Otherwise the copy with the fewest cells whose walkable or line-of-sight flag differs wins, then the one with the fewest water-only differences, and source priority only breaks exact ties. The report counts them in cells ("3 of 57,600 cells differ", "only water differs (21 cells)"), because a percentage hides them: 3 cells on a big map round to 100.0%. A map's textures, models and sounds then come from the map's own source when it has them. When maps from different sources share a file, the higher-priority source's copy is used.</p>
+<h3>What it fixes along the way</h3>
+<ul>
+  <li><b>Only what's used:</b> monsters, NPCs, bodies, heads, headgear, icons and cut-ins come from the references, not whole folders. Cut-ins alone went from 1,764 files (854 MB) to the 17 that NPC scripts show.</li>
+  <li><b>Map versions:</b> 83 maps match the release exactly and 38 differ only in water flags. For another 149 the release differs by a handful of hand-edited cells (at least 99% identical). For all of these, and for 2 server-only maps no client ships (<code>poring_c01</code>, <code>poring_c02</code>), the server gets <b>Doddler's walk files</b>: all 272 in <code>walkdata\</code>.</li>
+  <li><b>Older map versions:</b> kRO has since redrawn <code>izlude</code> (the 2014 redesign is 268×300; the release's is 268×268), <code>alberta</code> and <code>moc_ruins</code>, so no current kRO client matches the release there. The 2009 client's <code>alberta</code> and <code>izlude</code> match it apart from water flags, and so does the classic client's <code>moc_ruins</code>. The two old clients' versions of 12 more maps are also closer: 4 of the 2009 client's 5 (<code>prontera</code>, <code>prt_castle</code>, <code>yuno</code> and the server-only <code>alde_gld</code>) match exactly or apart from water, and 5 of the classic client's 7 match exactly. So some cells that looked like hand edits were older map versions: kRO 2020's <code>prontera</code> and <code>yuno</code> differ from the release in 40 and 53 walkable cells, the 2009 copies in none. Seven more older copies are only a few cells closer than kRO 2024's, which a rounded percentage couldn't tell apart: <code>cmd_fild03</code> (26 cells off, the classic client's 3), <code>prt_fild00</code> (29, kRO 2020's 9), <code>cmd_fild08</code> (the classic client's 43, the 2009 client's 16), <code>gl_church</code> (92 to 81), <code>prt_fild05</code> (21 to 19) and <code>mjolnir_01</code> (22 to 21). The classic client's <code>pay_fild10</code> ties on walk cells and has fewer water differences. The RWC 2009 client (another build of the 2009 client, plus an event GRF with other versions of 8 towns) was tried as the lowest-priority source and isn't one: it ties or trails on every map, and its only files the others lack are 20 that nothing in Rebuild uses.</li>
+  <li><b>Renamed maps found by layout:</b> <code>payon_p</code> (Old Payon) is kRO 2024's <code>1@exsh</code>, <code>pvp_n_1-4</code> is <code>job_priest</code> and <code>pvp_n_1-5</code> is <code>job_knight</code>, all exact matches with the release. <code>guild_room</code> is <code>quiz_01</code>, which matches apart from water flags.</li>
+  <li><b>Newer map formats:</b> the importer only reads RSW 2.1. <code>aldeg_cas01</code> (RSW 2.2) and <code>payon_p</code> (RSW 2.6: water moved to the GND, and later builds add a byte per model, detected by parsing) are rewritten as exact 2.1 files. Kept the other way round, kRO 2024's redesigned <code>payon</code> would not import at all, so the 2020 copy is used.</li>
+  <li><b>Hair colours:</b> <code>headdata.json</code>'s <code>&lt;n&gt;_남_&lt;c&gt;</code> ids are palettes (<code>palette\머리\머리&lt;n&gt;_남_&lt;c&gt;.pal</code>), not sprites. Seven colour-0 palettes kRO never shipped are derived from the sprite's own embedded palette.</li>
+  <li><b>Map tables:</b> <code>fogparametertable.txt</code> and <code>mapobjlighttable.txt</code> are included (fog and ambient per map).</li>
+  <li><b>GAT 1.3 water flag:</b> <code>payon_p</code>'s source (kRO 2024 <code>1@exsh.gat</code>, GAT 1.3) marks water tiles by setting bit 31 on the cell type (<code>0x80000001</code> = water + blocked). The importer only knows types 0–6 and threw, so the map had no scene. The pack clears the flag (5,682 cells, only that map) and keeps the real type underneath. Nothing Rebuild uses is lost: all 5,682 cells are blocked in Doddler's own <code>payon_p.walk</code> too, the walk data matches his byte for byte, and the importer still finds the water from the RSW water level (it agrees with the flag on 5,617 cells, and every water cell is blocked either way).</li>
+  <li><b>Sounds Unity can't decode:</b> 6 MS/IMA ADPCM <code>.wav</code> files (e.g. <code>se_frog02.wav</code>) failed in Unity's audio importer. They're decoded to 16-bit PCM in the pack.</li>
+  <li><b>Unpaired sprite halves:</b> weapon, shield and effect folders are copied whole, and 15 files there are an <code>.act</code> without its <code>.spr</code> (or the reverse) in every client. They only produced import errors, so they're left out and listed in the report.</li>
+  <li><b>System files:</b> folders copied whole skip <code>Thumbs.db</code>, <code>desktop.ini</code>, <code>.DS_Store</code> and Sound Forge <code>.sfk</code> peak files. kRO 2020 had three, and two had already been imported into <code>Assets\Sounds</code> and <code>Assets\Sprites\Effects</code>.</li>
+  <li><b>Sprite sound events:</b> every ACT's event table is read and each sound checked at the exact <code>wav\</code> path the importer loads. The only one no client has, <code>spore_move.wav</code>, gets a stand-in.</li>
+</ul>
+<h3 id="doddler-extras">Extra files in the Custom folder</h3>
+<p>The fork's pack carries five things no client has from its Custom folder: two that Doddler shared, then a map, some item art and a music track from elsewhere. They're optional: a pack built without them is complete, and <code>rebuild-pack.grf</code> already has them.</p>
+<ul>
+  <li><b>His edited <code>que_qsch01</code> (Okolnir) and <code>prt_fild08</code></b>, from <code>MapEdits_southprontera+okolnir.unitypackage</code>. The package can't be imported as is (its scripts are older than ours), so its edits were written once into the kRO map files. Cell types and heights went into the <code>.gat</code>, the ground's heights, textures and colours (recovered from his ground meshes) into the <code>.gnd</code>, and models added, moved or switched off into the <code>.rsw</code>. For <code>que_qsch01</code> that's 2,837 cell types, 3,935 cell heights, 600 ground tiles raised or lowered, 144 repainted (the centre's grass and coloured tiles became the stone of the Frus and Skogul rooms), 88 models added and 103 moved or removed. For <code>prt_fild08</code> it's 169 cell types, 9 heights, 43 ground tiles raised or lowered and 9 models; its ground keeps kRO's textures, since his repaint of 1,765 tiles along the edge with Prontera looked less right in game. Both maps then match his walk data apart from cells that are walkable without line of sight, which a <code>.gat</code> can't express (76 and 14; the client treats them as walkable), so the server uses his walk files. After import, both scenes reproduce the files exactly; Okolnir's ground matches his scene tile for tile, and <code>prt_fild08</code>'s matches it in height. His Okolnir scene's skill markers (switched off in his release) and cloud layer aren't map data, so they're left out (<a href="#gaps">Known gaps</a>).</li>
+  <li><b>His 10 custom monster sprites.</b> Four replace stand-ins (<code>deathspore</code>, <code>fungus</code>, <code>deniro_larva</code>, <code>piere_larva</code>). Four replace kRO 2024 files with the same names: kRO's <code>soldier_deniro</code> and <code>soldier_piere</code> are an unrelated monster that shows as a black silhouette, and his <code>raptice</code> and <code>were_wolf</code> have more animation frames. <code>andre_larva</code> and <code>soldier_andre</code> are identical to kRO's.</li>
+  <li><b>The <code>2009rwc_03</code> debug room</b> (its <code>.gat</code>, <code>.gnd</code> and <code>.rsw</code>), the one client map no client has. Its 30 models and 9 textures come from kRO 2024. It matches the release's walk data apart from 472 water cells, so the server keeps the release's walk file. It came with 8 more RWC arena maps (<code>2008rwc_04</code>, <code>2009rwc_01</code>, <code>02</code> and <code>04</code>, <code>2012rwc_01</code> to <code>04</code>) that Rebuild doesn't use, so the pack leaves them out.</li>
+  <li><b>Collection art for 7 skill scrolls</b> (<code>texture\유저인터페이스\collection\koko_*.bmp</code>): Aspersio, and solo and party Assumptio, Blessing and Increase AGI. Their item icons came with them, but they're the same files as the repo's own in <code>Assets/Textures/CustomIcons/Item</code>, so only the collection art is needed.</li>
+  <li><b>Okolnir's music</b>, <code>bgm\ToS-3rdWave.flac</code>: "3rd Wave" by Questrosound, from the Tree of Savior soundtrack. Maps.csv names it with its extension, and the client loads it by that exact name. It's Doddler's own copy, from his June 2025 release. A build doesn't keep the original FLAC: his holds Unity's Vorbis encoding of it at full quality (<code>music_assets_assets\music\tos-3rdwave.flac.bundle</code>), which was decoded with UnityPy and saved as FLAC (<code>ffmpeg -i ToS-3rdWave.wav ToS-3rdWave.flac</code>; 210.8 s, 26.1 MB). Unity re-encodes it with the same settings as the other tracks. An MP3 of the track also works (<code>ffmpeg -i &lt;file&gt;.mp3 -map 0:a ToS-3rdWave.flac</code>), but the one tried here was a different master: no silence before the music, where his has 0.75 s, and about 1 dB quieter.</li>
+</ul>
+<h3>Substitutions and waivers</h3>
+<p>Anything no source ships is listed in <code>setup\pack\aliases.json</code> with a reason, and shows up in the report:</p>
+<table>
+  <tr><th>Missing file</th><th>Stands in with</th><th>Why</th></tr>
+  <tr><td class="mono">deniro_larva, piere_larva, deathspore</td><td class="mono">deniro / piere / poison_spore</td><td>Upstream's own TemporaryMonsterAliases for Rebuild's custom monsters. The fork's pack has his real ones (<a href="#doddler-extras">above</a>)</td></tr>
+  <tr><td class="mono">sprite\몬스터\verit</td><td class="mono">mutant_verit</td><td>No client ships a <code>verit</code> sprite, the 2009 ones included. kRO keeps Verit's art as <code>mutant_verit</code>, pixel-identical to the Verit in Doddler's release, so Verit looks the same</td></tr>
+  <tr><td class="mono">sprite\몬스터\fungus</td><td class="mono">poison_spore</td><td>Rebuild custom monster (only with the DoddlerCustomMonsters flag). The fork's pack has his real one</td></tr>
+  <tr><td class="mono">몸통\남\무희바지_여, 몸통\여\바드_남</td><td>the other gender's body</td><td>Dancer and Bard are single-gender; the config points the other slot at them</td></tr>
+  <tr><td class="mono">wav\inspiration.wav</td><td class="mono">wav\effect\lg_inspiration.wav</td><td>Potion effect sound missing everywhere</td></tr>
+  <tr><td class="mono">texture\effect\hl_blind.tga</td><td class="mono">handicapstate_deepblind.tga</td><td>Blind status icon; kRO only ships Deep Blind now. The fork's pack has the original icon from <code>custom\</code>, so the stand-in only applies to packs built without it</td></tr>
+  <tr><td class="mono">wav\spore_move.wav</td><td class="mono">wav\spore_move1.wav</td><td>Move sound of the spore, deathspore and fungus sprites; clients only ship <code>spore_move1/2</code></td></tr>
+  <tr><td class="mono">bgm\ToS-3rdWave.flac</td><td>waived</td><td>Rebuild's Okolnir track, from the Tree of Savior soundtrack. The fork's pack has it from <code>custom\bgm\</code> (<a href="#doddler-extras">above</a>), so this only applies to packs built without it</td></tr>
+  <tr><td class="mono">…_메모라이즈북.spr (shield)</td><td>waived</td><td>Books have no worn sprite in any client, the 2009 ones included; nothing is drawn, as in kRO</td></tr>
+</table>
+<p class="muted">No references stay open, optional ones included. Built without the Custom folder's files, 7 optional ones do: collection art for 7 scroll items that no client has (the item icon is used).</p>
+<h3>Outputs</h3>
+<table>
+  <tr><th>Path in packDir</th><th>What</th></tr>
+  <tr><td class="mono">data\</td><td>The import source (<code>rr import</code> uses it automatically)</td></tr>
+  <tr><td class="mono">walkdata\</td><td>Server walk data for 272 maps; <code>rr server</code> points the server at it</td></tr>
+  <tr><td class="mono">rebuild-pack.grf</td><td>The whole pack as one GRF 0x200 (checked with GRF Editor), plus Doddler's walk data for the 272 maps it uses, so it's all another machine needs (<a href="#from-grf">below</a>). It holds only what Rebuild needs, already converted (maps rewritten to RSW 2.1, ADPCM sounds to PCM), so it isn't a replacement for a game client's <code>data.grf</code></td></tr>
+  <tr><td class="mono">manifest.json</td><td>Every file with its source client, source path, size and SHA-1</td></tr>
+  <tr><td class="mono">deps.tsv</td><td>The pack files each imported asset is made from (map scenes, model prefabs and atlases, textures, icons, effect prefabs), so <code>rr import</code> can tell what a pack change affects (<a href="#import-records">below</a>)</td></tr>
+  <tr><td class="mono">fingerprint.tsv</td><td>The same without local paths or game data: file hashes, each source's label and GRF version, map choices and server walk hashes (2.6 MB). <code>rr fingerprint</code> copies it to <code>setup\pack\fingerprint.tsv</code>, the committed copy other machines compare with (<a href="#own-clients">below</a>)</td></tr>
+  <tr><td class="mono">report.html / catalog.json</td><td>The catalog: issues, sources, categories, map verification, a searchable file list and the project cleanup audit</td></tr>
+</table>
+
+<h3 id="from-grf">Another machine from our GRF</h3>
+<p><code>rebuild-pack.grf</code> (758 MB) replaces every source. Besides the 24,931 pack files it carries the reference walk data under <code>data\rebuild\reference-walk\</code>, so the new machine needs no kRO client, BGM folder or release archive.</p>
+<div class="code"><pre>irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1 | iex   <span class="c"># at the first GRF prompt, give the path to rebuild-pack.grf; the other data questions are skipped</span></pre></div>
+<ul>
+  <li>Tested with the GRF alone, copied straight into the new pack folder with no <code>.sig</code> and no release archive. <code>rr pack</code> rebuilt the pack in 2.5 minutes. The new GRF was byte-identical to the original, and so were all 272 walk files. Rechecked after the classic and 2009 clients were added: rebuilt from the GRF alone in 2 min 40 s, again byte-identical.</li>
+  <li>Copy <code>snapshots\latest</code> along with it and <code>rr setup</code> restores that instead of importing, because the rebuilt pack has the same signature. Saved after <code>rr bake</code> and <code>rr minimaps</code> (19.8 GB), it also spares the new machine the 5-hour bake.</li>
+  <li>To hand both over as one file, pack them laid out like a work folder, so the other side extracts it into theirs and gives <code>&lt;work folder&gt;\rebuild-pack.grf</code> at the GRF prompt:
+<div class="code"><pre>cd workDir\pack; 7z a ..\share\bundle.7z rebuild-pack.grf
+cd ..;           7z a share\bundle.7z snapshots\latest</pre></div>
+  Tested with the baked snapshot: the 20.5 GB packed into an 8.1 GB archive in 33 minutes. Extracted into a fresh work folder (13 minutes), <code>rr setup</code> in a fresh clone rebuilt the pack from the GRF and restored the snapshot in 15 minutes. Unity then opened it with 35 small imports and reported 233 of 234 maps lit, with their minimaps. The same archive works on Doddler's master without rr (<a href="#master-bundle">below</a>).</li>
+  <li>That machine's report counts differently, but the files are the same. The 15 substitutions show as found, because the GRF already has them under their final names, and there are no conflicts with a single source. The 38 server-only maps show as "server walk from reference", because the pack never includes their map files.</li>
+</ul>
+
+<h3 id="own-clients">Another machine from its own clients</h3>
+<p>If our GRF can't be shared, list your own clients in <code>packSources</code> and run <code>rr pack</code>. Every fix above is a rule rather than a list of our files: map verification, renamed-map search, RSW and GAT rewrites, ADPCM decoding, derived palettes, stand-ins, and the skipping of unpaired sprites and system files. The tool finds the same problems in any client.</p>
+<p>What the result looks like depends on two things you supply:</p>
+<ul>
+  <li><b>Doddler's release archive</b> (<code>releaseArchive</code>, read by <code>rr reference</code>). Without it maps are taken by source order and not verified, renamed maps such as <code>payon_p</code> are not found, and the server's walk files are built from your maps instead of Doddler's hand-edited ones.</li>
+  <li><b>Which clients you have.</b> Files come only from them. A file none of them ships becomes a stand-in or is reported missing.</li>
+</ul>
+<p>The fork's Custom folder adds files no client has (<a href="#doddler-extras">above</a>). Without them, a pack has kRO's versions of <code>que_qsch01</code> and <code>prt_fild08</code>, stand-ins or kRO's files for 8 monsters, no <code>2009rwc_03</code> for the client, item icons instead of collection art for 7 scrolls, and no music in Okolnir.</p>
+<p>To show what that means in practice, each build compares its result with <code>setup\pack\fingerprint.tsv</code>, the fingerprint of the fork's pack. The fingerprint holds file names, SHA-1s and sources, never game data. The console and a "Compared with the fork's pack" section in <code>report.html</code> list the files that differ, are missing or are extra, maps that took a different version, and server walk files that differ. Differing and missing files are grouped by the fork source they came from, with its GRF version, so you know which client to add:</p>
+<div class="code"><pre>Compared with the fork's pack (fingerprint from 2026-10-01 01:00, 24,881 files):
+  24,639 identical, 155 different, 87 missing, 126 extra; 21 map(s) differ, 4 server walk file(s) differ
+  the fork took the different and missing files from:
+        84 of its 84 from Other client (GRF 0x200)
+        78 of its 330 from 2009 client (GRF 0x200)
+        71 of its 158 from Classic client (GRF 0x200)
+         8 of its 157 from kRO 2020 (GRF 0x200)
+         1 of its 1 from Custom (folder)</pre></div>
+<p>That is a real run with only kRO 2024 and its BGM folder, plus the release archive:</p>
+<ul>
+  <li>0 required references were unresolved.</li>
+  <li>21 maps came from kRO 2024: <code>payon</code>, <code>prt_fild00</code> and <code>yuno_fild12</code>, which the fork takes from kRO 2020, and the 18 client maps it takes from the 2009 and classic clients. Their files are 154 of the 155 different ones. The other is <code>hl_blind.tga</code>: the fork's comes from <code>custom\</code>, this pack's is the stand-in. The report's map list says how far each version is from the release: for <code>cmd_fild03</code>, "Classic client: cmd_fild03, 3 cells differ, plus 81 water" in the fork against "kRO 2024: cmd_fild03, 26 cells differ, plus 81 water" here.</li>
+  <li>The server still used Doddler's walk files for 17 of them. kRO 2024's <code>yuno</code> is just under 99% like the release, and its <code>alberta</code>, <code>izlude</code> and <code>moc_ruins</code> are the redrawn versions, so those 4 walk files were built from kRO 2024's maps. kRO 2024's <code>payon</code> is the RSW 2.6 redesign, which the pack rewrites to 2.1 as it does for <code>payon_p</code>; importing it hasn't been tried.</li>
+  <li>Missing: 84 sounds only the other client has, one kRO 2020 sound, and a model and texture only the 2009 client's <code>prontera</code> uses.</li>
+  <li>Extra: 126 models and textures that only kRO 2024's versions of those maps use, such as the <code>prontera_re</code> folders and the redesigned Izlude's.</li>
+</ul>
+<p>The same run without the release archive had 124 missing files and 199 different server walk files. The comparison says the pack had no release walk data and tells you to set <code>releaseArchive</code>. Its map list shows the four renamed maps it could not find: <code>payon_p</code>, <code>pvp_n_1-4</code>, <code>pvp_n_1-5</code> and <code>guild_room</code>. When your pack is the one others should compare with, run <code>rr fingerprint</code> and commit the file. <code>rr doctor</code> says whether the current pack matches it.</p>
+
+<h2 id="daily">Run &amp; play</h2>
+<ol class="steps">
+  <li><code>.\rr server</code> starts the server with the <code>RoRebuildServer</code> launch profile (all maps). <code>.\rr server Minimal</code> loads only <code>prt_fild08</code>, which is handy for fast iteration. rr points the server at the pack's <code>walkdata\</code> through the <code>ServerDataConfig__WalkPathData</code> environment variable, so no tracked config changes. Without a pack it falls back to <code>RebuildClient/Assets/Maps/exportdata</code> from the map import.</li>
+  <li><code>.\rr editor</code> opens the project through the Unity CLI. Pick <b>Ragnarok &gt; Open Main Scene</b>, press <b>Play</b> and create an account at the login box. The client connects to <code>ws://127.0.0.1:5000/ws</code> by default.</li>
+  <li>After changing anything under <code>RoRebuildServer/GameConfig/ServerData</code> (monsters, items, maps), run <code>.\rr update-client</code> so the client config matches.</li>
+</ol>
+<div class="note">The server data uses custom monsters with IDs of 6000 and up whose sprites aren't in any official client (<a href="https://github.com/Doddler/RagnarokRebuildTcp#special-considerations">Doddler's README</a>, "Special Considerations"). The fork's pack has Doddler's real sprites in its Custom folder (<a href="#doddler-extras">above</a>). Without them, each one gets a stand-in: upstream's own aliases, plus <code>fungus</code> → <code>poison_spore</code>.</div>
+
+<h2 id="build">Build the client</h2>
+<div class="code"><pre>.\rr build-client      <span class="c"># Windows x64 player into buildOutput (workDir\Build\PC)</span>
+.\rr play              <span class="c"># launch it (start .\rr server first)</span>
+.\rr smoke             <span class="c"># automated end-to-end check of the build</span></pre></div>
+<p>This runs <code>unity build --target StandaloneWindows64 --execute-method ...BuildWindows</code>. The build converts any sprites still missing their data, refreshes addressable groups, builds addressable content (~13 min here), then builds the player with <code>Assets/Scenes/MainScene.unity</code> (~5 min the first time, ~2 min after). The project's player backend is <b>IL2CPP</b>, which is why the Windows IL2CPP module and an MSVC toolchain are prerequisites. The result is 2.5 GB, or 3.7 GB with every map baked. IL2CPP's ~1 GB of debug output is moved to <code>Build\PC-symbols</code>, so the <code>PC</code> folder can be zipped and shared as is; <a href="#release"><code>rr release</code></a> packages it with a server.</p>
+<p>A build records the editor version and the name, size and time of every file in <code>ProjectSettings</code>, <code>Packages</code> and <code>Assets</code>, so <code>rr build-client</code> with none of them changed returns in about 5 seconds instead of rebuilding (<code>-Force</code> builds anyway). A file changed while the build ran, other than the settings and addressable groups the build rewrites itself, makes the next one build again.</p>
+<p><b><code>rr smoke</code></b> checks a build for real. It starts the server with the pack's walk data (unless one is already on port 5000), then launches the build windowed with <code>-rrSmokeTest</code>. The player creates a throwaway account and character through the normal login flow, waits for the world to load, saves a screenshot to <code>workDir\smoke\</code> and quits with exit code 0 or 1. rr prints the steps, plus any exceptions from the player log. It takes about a minute; here it lands a Novice on <code>prt_fild08</code> with the map, sprites, UI and minimap loaded. To land somewhere else, set the server's start position in the same PowerShell first, for example <code>$env:ServerCharacterEntry__Map = "yuno"; $env:ServerCharacterEntry__X = 158; $env:ServerCharacterEntry__Y = 20; $env:ServerCharacterEntry__Area = 0</code>. It only reaches a server rr starts, and a start cell inside a warp moves the character on before the screenshot.</p>
+<p>The built client connects to the address in the login window's <b>Server</b> tab. It defaults to <code>ws://127.0.0.1:5000/ws</code> and is remembered between runs, so to play against another machine you just type its address there. Play mode in the Editor uses the same login window. <span class="muted">(<code>NetworkManager.BeginConnection</code> and <code>serverconfig.txt</code> are leftovers upstream no longer calls.)</span></p>
+<div class="note warn"><b>Why builds switch the addressables profile.</b> The committed active profile is "Default", which loads the remote catalog from <code>https://www.dodsrv.com/[BuildTarget]</code>, Doddler's live server. A plain build would try to stream content from there. The automation temporarily switches to the repo's "Local" profile so all content ships inside the build, then restores the committed setting.</div>
+
+<h2 id="release">Share a release</h2>
+<div class="code"><pre>.\rr release           <span class="c"># build the player, then package and check it into workDir\release</span>
+.\rr release -NoBuild  <span class="c"># package the current player build instead</span></pre></div>
+<p><code>rr release</code> makes a download for people who only want to play, in the same layout as Doddler's (Client, Server, readme). It's named after the date and commit, for example <code>RagnarokRebuild-2026-10-01-b7863217</code>, and holds:</p>
+<ul>
+  <li><code>Client\</code>: the player build, without its debug symbols.</li>
+  <li><code>Server\</code>: a self-contained publish that carries .NET 9, so nothing needs installing. It comes with <code>ServerData</code>, the pack's walk data for 272 maps and the compiled script cache. Only <code>appsettings.json</code> and <code>appsettings.Logging.json</code> ship, pointed at the folders beside the exe; the Production settings add an https endpoint on port 443 that needs a certificate. <code>/adminify</code> is on, with a passcode picked at random for each release.</li>
+  <li><code>Play.cmd</code>: starts the server in its own window unless one is already running, waits until it accepts connections, then starts the client.</li>
+  <li><code>readme.txt</code>: how to play, the passcode and Doddler's admin commands, resetting, LAN play. <code>version.txt</code>: the commit, the client build, the .NET version and the pack signature it was made from.</li>
+</ul>
+<p>Before archiving, rr runs the <a href="#build">smoke test</a> on the release itself: its own server exe from its own folder, with the client from its Client folder, so port 5000 has to be free. Unlike <code>rr smoke</code>, any error in the player log fails it. It then deletes the database, keys and logs the test left behind, and 7-Zips the folder (a zip without 7-Zip) next to a <code>.sha256</code> file. With <code>-NoBuild</code> the whole run took 7 minutes here and made a 3.86 GB folder and a 2.25 GB archive; Doddler's June 2025 download is 2.6 GB, with a .NET SDK installer in it. Extracted into another folder (2 minutes), <code>Play.cmd</code> had the server up and the client open in 18 seconds.</p>
+
+<h2 id="master">Our files on Doddler's master</h2>
+<p>The fork changes none of Doddler's importers, so a plain clone of his <code>master</code> can take our files through his own Unity menus, with no rr and no kRO client. What goes where depends on which file you were given. The same steps come as text files with the bundle, <code>README-master-bundle.txt</code> and <code>README-master-grf.txt</code>.</p>
+<table>
+  <tr><th>File</th><th>What's in it</th><th>Where it goes</th></tr>
+  <tr><td class="mono">RagnarokRebuild-baked-&lt;date&gt;.7z</td><td><code>rebuild-pack.grf</code> plus <code>snapshots\latest</code>: the client already imported, all 234 maps lit and with minimaps, and Unity's Library. 8.2 GB, 20.5 GB extracted.</td><td>On master, the snapshot's two folders are copied into the clone (<a href="#master-bundle">below</a>). With rr, the whole archive is extracted into the work folder (<a href="#from-grf">above</a>).</td></tr>
+  <tr><td class="mono">rebuild-pack.grf</td><td>Every file Rebuild uses, already fixed for the importer, with the 68 music tracks its maps play and Doddler's walk data. 758 MB.</td><td>Extracted anywhere. Unity imports from its <code>data\</code> folder, and <code>data\bgm</code> is copied into <code>Assets\Music</code> (<a href="#master-grf">below</a>).</td></tr>
+  <tr><td class="mono">RagnarokRebuild-&lt;date&gt;-&lt;commit&gt;.7z</td><td>A client and server ready to play (<a href="#release">above</a>).</td><td>Any folder; <code>Play.cmd</code> starts both. No Unity or clone needed.</td></tr>
+</table>
+
+<h3 id="master-bundle">From the baked bundle</h3>
+<p>Nothing is imported or baked, so Doddler's import, addressables, bake and minimap steps are skipped. You need Unity 6000.3.19f1 exactly (another version reimports everything), the .NET 9 SDK and 7-Zip, plus about 20 GB for the extracted bundle and as much again in the clone. Keep Unity closed until step 5.</p>
+<ol class="steps">
+  <li><b>Clone</b> master: <code>git clone https://github.com/Doddler/RagnarokRebuildTcp.git D:\RagnarokRebuildTcp</code></li>
+  <li><b>Extract</b> the bundle with 7-Zip, for example to <code>D:\RebuildBundle</code>. It holds <code>rebuild-pack.grf</code>, <code>snapshots\latest\repo\</code> (the imported files, laid out like the repo) and <code>snapshots\latest\Library\</code> (Unity's import cache).</li>
+  <li><b>Copy</b> both folders into the clone with robocopy, which keeps the file times Unity's cache checks. The extracted copy can go afterwards; keep <code>rebuild-pack.grf</code> if you want <a href="#master-walk">Doddler's walk data</a>.
+<div class="code"><pre>robocopy D:\RebuildBundle\snapshots\latest\repo    D:\RagnarokRebuildTcp                       /E /COPY:DAT /DCOPY:DAT /MT:16
+robocopy D:\RebuildBundle\snapshots\latest\Library D:\RagnarokRebuildTcp\RebuildClient\Library /E /COPY:DAT /DCOPY:DAT /MT:16</pre></div></li>
+  <li><b>Shared data</b>: run <code>updateclient.bat</code> in the clone's root and press a key when it pauses. It makes the client config from the server data, which a snapshot leaves out.</li>
+  <li><b>Open</b> the <code>RebuildClient</code> folder in Unity Hub with 6000.3.19f1. The first open takes about 10 minutes: Unity compiles the scripts, whose cache a snapshot leaves out, and reimports about 1,000 small assets (UI textures, TextMesh Pro, prefabs). Later opens are quick.</li>
+  <li><b>Play</b>: start the server, then pick Ragnarok &gt; Open Main Scene in Unity, press Play and create an account.
+<div class="code"><pre>cd D:\RagnarokRebuildTcp\RoRebuildServer\RoRebuildServer
+dotnet run --launch-profile RoRebuildServer   <span class="c"># or this profile in Visual Studio, not IIS Express</span></pre></div></li>
+</ol>
+<p>Tested on a fresh checkout of master at <code>72d4004a</code>: <code>updateclient.bat</code> took 39 seconds, and Unity opened the project in 11.5 minutes without compile errors. None of the 979 assets it reimported were in <code>Scenes/Maps</code>, <code>Maps</code>, <code>Sprites</code>, <code>Models</code>, <code>Sounds</code>, <code>Effects</code> or <code>Music</code>. Afterwards <code>git status</code> lists the tracked files the importers regenerated (addressable groups, atlases, settings), as after any import; keep them out of pull requests. The bundle was imported with master's importers as of <code>72d4004a</code>. If a later master commit changes them, import from the GRF instead.</p>
+
+<h3 id="master-grf">From rebuild-pack.grf</h3>
+<p>These are Doddler's steps with our GRF in place of "extract data.grf from an original client". The GRF has the music, so no kRO BGM folder is needed, and Doddler's sprites for the custom monsters (ID 6000 and up), so they don't turn into Porings. You need Unity 6000.3.19f1, the .NET 9 SDK, GRF Editor and about 25 GB free on the clone's drive: 11 GB of imported assets and 10 GB of Library, more once lighting is baked.</p>
+<ol class="steps">
+  <li><b>Clone</b> master as above, then run <code>updateclient.bat</code> in its root and press a key when it pauses.</li>
+  <li><b>Extract</b>: open <code>rebuild-pack.grf</code> in GRF Editor and extract everything, for example to <code>D:\RebuildData</code>. That gives <code>D:\RebuildData\data\</code> with <code>sprite\</code>, <code>texture\</code>, <code>model\</code>, <code>wav\</code>, <code>palette\</code>, <code>bgm\</code>, the map files (<code>.gat</code>, <code>.gnd</code>, <code>.rsw</code>) and <code>rebuild\reference-walk\</code>. GRF Editor keeps the Korean folder names under <code>sprite\</code> and <code>texture\</code>, which the importer needs.</li>
+  <li><b>Music</b>: copy everything in <code>D:\RebuildData\data\bgm</code> into <code>RebuildClient\Assets\Music</code>.</li>
+  <li><b>Import</b>: open <code>RebuildClient</code> in Unity, then Ragnarok &gt; Copy data from Profile. Click Locate Data folder, pick <code>D:\RebuildData\data</code>, choose Full and click Import Profile. That's about 1.5 hours for the 234 maps; Minimum (<code>prt_fild08</code> and the Novice) takes about 8 minutes, to try it first. If Unity stops partway, run it again: it skips what's already there. If some monsters are still invisible afterwards, right-click their folder (for example <code>Assets/Sprites/Monsters</code>) and choose Reimport.</li>
+  <li><b>Addressables</b>: Ragnarok &gt; Update Addressables (Full).</li>
+  <li><b>Lighting</b> <span class="tag opt">optional</span>: Ragnarok &gt; Lighting Manager. Drag every scene in <code>Assets/Scenes/Maps</code> into its Scenes list, click Bake All Scenes (not Bake All), then Make Minimaps. Here the bake took 5 hours and the minimaps 11 minutes (<a href="#lighting">details</a>). Without it the maps render flat. If a map comes out washed out, bake it again on its own.</li>
+  <li><b>Play</b>: start the server as in the bundle steps (<code>--launch-profile Minimal</code> after a Minimum import), then Ragnarok &gt; Open Main Scene and Play.</li>
+</ol>
+<p class="muted">This route hasn't been clicked through on master, because GRF Editor and these menus don't run headless. The menus run the same importers <code>rr import</code> runs, on the same files.</p>
+
+<h3 id="master-walk">Server walk data <span class="tag opt">optional</span></h3>
+<p>Master's server reads its walk data from <code>RebuildClient\Assets\Maps\exportdata</code>, which the bundle brings and the map import writes, made from the maps the client shows. The GRF also carries Doddler's own walk files, the ones his live server uses and <code>rr server</code> points at: a few hand-edited cells on about 150 maps, plus the 38 server-only maps (job change rooms, guild castles) whose instances master's <code>Instances.csv</code> has switched off. To use them, extract <code>data\rebuild\reference-walk</code> (272 files) from the GRF with GRF Editor and point the server at it. Setting it in the PowerShell that starts the server changes no tracked file:</p>
+<div class="code"><pre>$env:ServerDataConfig__WalkPathData = "D:\RebuildData\data\rebuild\reference-walk"
+dotnet run --launch-profile RoRebuildServer</pre></div>
+<p>To keep it, set <code>"WalkPathData": "D:/RebuildData/data/rebuild/reference-walk"</code> in both <code>appsettings.Development.json</code> (RoRebuildServer profile) and <code>appsettings.json</code> (Minimal profile) in <code>RoRebuildServer\RoRebuildServer</code>. Master's server started with either walk data and created the same 234 maps. A missing walk file only shows when its map's instance is created: the server logs "Failed to load map walk data" and gives that map an open grid.</p>
+
+<h2 id="resources">Client data import</h2>
+<table>
+  <tr><th>Profile</th><th>What it imports</th><th>Time here</th></tr>
+  <tr><td class="mono">minimum</td><td><code>prt_fild08</code>, Novice sprites and equipment, a few effects, cursors, emotions, damage numbers and the default hairstyle.</td><td class="mono">~8 min</td></tr>
+  <tr><td class="mono">medium</td><td>Minimum plus every first job.</td><td class="mono">~10–15 min</td></tr>
+  <tr><td class="mono">full</td><td>Everything in the pack: all sounds, the referenced monster/NPC/headgear/body/head sprites and palettes, weapon and shield sprites for every job, the cut-ins NPC scripts show, effect prefabs and atlas, water, every client map (all 234; 233 without the Custom folder, see <a href="#gaps">known gaps</a>), and item/skill/card icons and collections.</td><td class="mono" id="full-time">~1 h 35 min</td></tr>
+</table>
+<p class="muted">Full import here, with the Library on the internal SSD: sprites ~15 min, the 233 maps it had then ~65 min (10–20 s each), icons, effects and addressables the rest. A rerun with nothing new returns in 2 seconds (1.5 min with <code>-Force</code>); adding <code>2009rwc_03</code> later took 2 min.</p>
+<p>Profiles live in <code>RebuildClient/Assets/StreamingAssets/ProjectConfig/*.json</code> (see <code>Docs/MINIMAL_DEVELOPMENT.md</code>). Running a bigger profile later keeps what's already there, and a rerun after an interruption continues where it stopped, because the importers skip scenes and files that exist.</p>
+<p id="import-records">That skipping also means a changed pack file would never reach a project imported before the change, so rr keeps records of each import in <code>Assets/Scenes/Maps/.rr-import/</code> (gitignored, and Unity ignores dot folders): the pack's files with their hashes, and for each imported asset a stamp of the pack files it's made from (<code>deps.tsv</code>). Before Unity starts, <code>rr import</code> deletes the assets whose stamp changed and the project's copies of sprite and palette files that changed, with their sprite data. Their <code>.meta</code> files stay, so the remade assets keep their GUIDs. It also removes converted files the pack no longer makes, and names any map that left the pack without deleting it. Swapping one map's ground file re-imported just that map, in 1.5 minutes. When the pack and the imported folders are as the last finished import left them, <code>rr import</code> returns without starting Unity; <code>-Force</code> runs the importer anyway. A project imported before these records existed is taken as imported from the current pack.</p>
+<p>Two things the upstream importer can't repair by itself, rr handles on every run:</p>
+<ul>
+  <li><b>Sprites left unconverted.</b> An <code>.act</code> is turned into sprite data only in the refresh that imports it. If Unity dies mid-import, the next run finds those <code>.act</code> files already imported and never converts them, so the monsters stay invisible. <code>rr import</code>, <code>rr addressables</code> and <code>rr build-client</code> convert any sprite missing its data first; <code>rr report</code> shows the count (0 here, 4,377 sprite data assets).</li>
+  <li><b>Changed sounds.</b> The importer skips files that already exist, so <code>rr import</code> copies sounds the pack added or changed itself, and queues the sprites whose sound events name them for reconversion.</li></ul>
+<p>Imported assets are gitignored upstream (Maps, Sprites, Sounds, Music, Models, Scenes/Maps, Effects). Maps, sprites or effects you add later need <code>.\rr addressables</code> before they load at runtime.</p>
+<h3>Same steps from the Unity menus</h3>
+<table>
+  <tr><th>rr</th><th>Unity menu equivalent</th></tr>
+  <tr><td class="mono">rr import &lt;profile&gt;</td><td>Ragnarok &gt; Set Ragnarok Data Directory, then Copy data from Profile</td></tr>
+  <tr><td class="mono">rr addressables</td><td>Ragnarok &gt; Update Addressables (Full)</td></tr>
+  <tr><td class="mono">rr bake</td><td>Ragnarok &gt; Lighting Manager &gt; Bake All Scenes</td></tr>
+  <tr><td class="mono">rr minimaps</td><td>Ragnarok &gt; Lighting Manager &gt; Make Minimaps</td></tr>
+  <tr><td class="mono">rr report</td><td>Ragnarok &gt; Client Data Health Check (counts only)</td></tr>
+</table>
+
+<h2 id="lighting">Lighting &amp; minimaps <span class="tag opt">optional</span></h2>
+<p>Without baked lighting the maps render flat. Baking is GPU-bound: the first 233 maps took 5 hours here on an RTX 3090 (a median of 78 seconds per map, up to 3.5 minutes for <code>pay_fild01</code>) and wrote 2.9 GB of lightmaps (a median of 7.5 MB per map, up to 62 MB for <code>c_tower1</code>). It's a separate step, and it resumes where it stopped:</p>
+<div class="code"><pre>.\rr bake prt_fild08,prontera   <span class="c"># try a couple of maps first</span>
+.\rr bake                       <span class="c"># every map without lighting from its current scene (resumable)</span>
+.\rr bake prontera -Force       <span class="c"># re-bake a map (e.g. a washed-out lightmap, a known upstream issue)</span>
+.\rr minimaps                   <span class="c"># after lighting; only maps whose scene or lighting changed (-Force: all)</span></pre></div>
+<p><code>rr bake</code> drives the upstream Lighting Manager's bake headlessly (ambient pass, lit pass, light probes), one map at a time, so results match the editor button. Each map is backed up first and put back as it was if its bake doesn't finish (<a href="#resume">details</a>). Unity only bakes into the project, so lightmaps are written next to each scene in <code>Assets/Scenes/Maps/&lt;map&gt;/</code> on the repo drive. The Library drive needs room too: Unity's imported copies of the lightmaps are much larger than the files, and during the full bake the Library grew by up to 11 GB before settling 2 GB above where it started. Minimaps took 11 minutes for those 233 maps (<code>Assets/Maps/minimap/</code>; <code>2009rwc_03</code>, added later, took 30 seconds to bake and 10 to draw); without one the client just logs a missing-key error for that map. A scene imported again starts without lighting, even though its old lightmaps are still in its folder, so the import records also note which import of a scene each bake and minimap was made from: after <code>rr import</code> remakes a map, <code>rr bake</code> and then <code>rr minimaps</code> redo just that map (<code>prt_fild08</code> took 2 minutes to bake and 20 seconds to draw), and with nothing to redo each returns once Unity has started. Rebuild the player so the lighting and minimaps ship; the build registers new minimaps itself, and <code>rr addressables</code> does it for Play mode in the editor. Save a snapshot afterwards; it's what you share to spare others the bake (<a href="#from-grf">above</a>).</p>
+
+<h2 id="snapshots">Snapshots (fast reinstall)</h2>
+<p>A full import takes an hour and a half. A snapshot keeps its result so you never repeat it: the imported folders (Sprites, Sounds, Maps, Models, Scenes/Maps, Effects, Textures/Import, Music), the tracked files the importers regenerated, and the Library's import state.</p>
+<div class="code"><pre>.\rr snapshot save              <span class="c"># after an import or bake (12.5 min and 15 GB after the import; 19.8 GB baked)</span>
+.\rr snapshot list
+.\rr snapshot restore           <span class="c"># into this clone (7.5 min here), then open Unity as usual</span>
+.\rr snapshot save -Name baked  <span class="c"># keep several; -NoLibrary skips the Library (Unity then reimports once)</span></pre></div>
+<ul>
+  <li>Tested on a fresh clone on another drive: after <code>restore</code>, Unity opened the project in under a minute without reimporting (35 small imports), with the same counts as here (233 maps, 4,377 sprite data assets, 3,245 sounds).</li>
+  <li><code>rr setup</code> restores the <code>latest</code> snapshot by itself into a clone that hasn't been imported yet, when the snapshot was saved from the same pack or carries the <a href="#import-records">import records</a>. Setup then imports, which brings in only what the pack changed since the snapshot was saved. An older snapshot of a different pack is left alone, and setup imports from scratch.</li>
+  <li>Build caches (<code>BuildCache</code>, <code>Bee</code>, built bundles, ~25 GB after two player builds) are left out, and a restore doesn't delete a machine's own copies of them.</li>
+  <li>The generated client config (<code>StreamingAssets/ClientConfigGenerated</code>) isn't in a snapshot, because it's derived from the server data; rr regenerates it the first time Unity runs.</li>
+</ul>
+
+<h2 id="gaps">Known gaps</h2>
+<ul>
+  <li><b><code>2009rwc_03</code></b> (a debug room) is the one client map no client has, under any name, not even the September 2009 client. The fork's pack has it from the Custom folder (<a href="#doddler-extras">above</a>). Built without it, the server still gets its walk data from the release, but the client can't render it.</li>
+  <li><b><code>izlude</code>, <code>alberta</code>, <code>moc_ruins</code></b> need an old client: the 2009 client for izlude and alberta, the classic client for moc_ruins. The classic client's izlude and alberta come close (404 and 5 cells off). Every current kRO client has the redrawn versions: 23 of izlude's 39 script positions (NPCs and warp arrivals) land on blocked cells there, and 3 of alberta's 59. Without an old client, the pack takes kRO's versions and builds the server's walk data from them, so the client and server still agree.</li>
+  <li><b><code>que_qsch01</code></b>: every client ships a version 2,837 cells off Doddler's. The fork's pack has his edited map from the Custom folder (<a href="#doddler-extras">above</a>). Built without it, the server gets walk data built from the client's map, so the two still agree.</li>
+  <li><b><code>JunoClouds</code></b>, the cloud layer Doddler placed by hand in his <code>yuno</code> and <code>que_qsch01</code> scenes (the only two of his release's 231 that have it), is left out on purpose. No map file describes it, so the importer never adds it. The prefab is in the repo: dropping it into a scene in the editor brings it back. He used the prefab as is in <code>yuno</code> and lowered it from −6.5 to −4.6 in <code>que_qsch01</code>; it follows the camera, so only the height matters.</li>
+  <li><b>Server-only custom maps</b> <code>rebuildtower</code>, <code>sword_1-1</code>, <code>turbo_n_1</code> are newer than the June 2025 release and in no client. The server logs a missing walk file and falls back to an open grid; nobody can enter them from the client either way. (<code>pvp_n_1-5_</code> reuses <code>pvp_n_1-5.walk</code>, which is present.)</li>
+  <li>The old kRO <code>RAG_SETUP_2006/2009</code> installers compress their GRF, so <code>RebuildPack --scan</code> finds nothing inside them; they have to be installed to be used as sources. The 2009 client source is such an install's <code>data.grf</code>.</li>
+  <li>GRFs repacked with GRF Editor's custom (non-zlib) compression can't be read. Such maps are only skipped as rename candidates; nothing in the pack comes from them.</li>
+  <li><b>One short sound</b>: <code>wav\worm_tail_damage.wav</code>'s compressed stream inside kRO's own GRF is 7 bytes shorter than its declared size. It's zero-padded to the declared size, the same as GRF Editor does. The missing bytes are the end of the file's metadata text, after the audio, which is complete. Five of the six clients checked ship this same short copy.</li>
+  <li><code>rdata.grf</code> (Renewal-only data) is ignored on purpose. Rebuild targets the classic data.grf content.</li>
+</ul>
+
+<h2 id="resume">Stopping &amp; resuming</h2>
+<p>Any rr command can be stopped (Ctrl+C, a closed terminal, a crash, a power cut) and simply run again. The rerun carries on where it stopped and never trusts a half-written file. <code>rr doctor</code> lists anything left half done under "Interrupted work", and every command prints the same notes before it starts.</p>
+<table>
+  <tr><th>Step</th><th>What the rerun does</th></tr>
+  <tr><td class="mono">rr pack</td><td>Carries on from <code>manifest.partial.jsonl</code>, the list of files the stopped run finished. Files are written to a temp file, flushed and renamed into place, and a file is only reused while its size and timestamp still match what the manifest recorded.</td></tr>
+  <tr><td class="mono">rr import</td><td>Deletes the files Unity was still copying (a cut-off copy is full size but ends in zeros) and any generated file it left damaged. The map whose scene it saved last is imported again, because that map's other assets may not have reached the disk. Assets it deleted to bring in pack changes are made by the rerun, since the import records count an import as finished only once Unity has. Bake, minimaps, build and snapshot save wait until the import has finished.</td></tr>
+  <tr><td class="mono">rr bake</td><td>Before each bake, the map's scene, lighting folder and probe texture, plus the shared lighting settings, are copied to <code>Library\rr-journal\bake-backup</code>. A map whose bake was cut off (or failed) goes back exactly as it was, then the queue carries on. Any Unity command puts it back first (<code>rr report</code>, <code>rr build</code>), so a half-lit map never ships.</td></tr>
+  <tr><td class="mono">rr minimaps</td><td>Carries on with the maps it had left.</td></tr>
+  <tr><td class="mono">rr build, rr reference</td><td>Built or extracted beside the old folder (<code>.new</code>) and swapped in only once complete. <code>rr play</code> and <code>rr smoke</code> never start a half-built player.</td></tr>
+  <tr><td class="mono">rr snapshot</td><td>A save marks itself complete last. <code>list</code> shows an incomplete one as such, and it can't be restored. Rerunning a save or a restore resumes it (robocopy skips what is already copied and recopies the file it was cut off in). Unity commands refuse to run on a half-restored project.</td></tr>
+  <tr><td class="mono">rr library-link</td><td>Finishes the move to the same destination. Unity commands refuse to run until it has.</td></tr>
+  <tr><td class="mono">rr sync</td><td>Puts back the regenerated files it set aside for the merge (<code>.git\info\rr-generated-backup</code>).</td></tr>
+  <tr><td class="mono">rr install-unity</td><td>Repairs the editor or the IL2CPP module instead of trusting what's on disk, reusing the downloads.</td></tr>
+  <tr><td class="mono">rr prereqs, bootstrap</td><td>Checks again and installs whatever is still missing; a tool winget already finished counts as present. The bootstrap reuses the clone, or clones again if the first one was cut off before its checkout.</td></tr>
+  <tr><td class="mono">rr smoke</td><td>Stops the test server the stopped run left behind.</td></tr>
+  <tr><td class="mono">rr release</td><td>Starts over: stops the stopped run's test server and deletes its half-made folder or archive, which are only renamed into place once complete.</td></tr>
+</table>
+<p>Only one state-changing rr runs at a time; a second one refuses and names the command holding the lock. <code>doctor</code>, <code>disk</code>, <code>server</code>, <code>play</code>, <code>smoke</code> and <code>editor</code> run alongside, so you can check on an overnight bake. The records live in <code>.git\info\rr-state</code> (rr) and <code>Library\rr-journal</code> (Unity) and are removed once their step finishes.</p>
+<p class="muted">Tested by killing <code>rr pack</code> (resumed 6,370 of 25,001 files, then rewrote nothing), <code>rr bake</code> after its first pass (the map came back byte-identical), <code>rr snapshot save</code> at 1.5 GB and <code>rr reference</code> mid-extraction, and by staging what a cut-off import, minimaps run and sync leave behind.</p>
+
+<h2 id="disk">Disk space</h2>
+<table id="disk-table">
+  <tr><th>Item</th><th>Where</th><th>Size</th><th>Safe to delete?</th></tr>
+  <tr><td>Imported client assets</td><td class="mono">RebuildClient\Assets\{Maps,Scenes\Maps,Sprites,Models,Sounds,Effects,Music}</td><td class="mono" id="sz-assets">10.2 GB, 12.9 GB baked</td><td>Only by re-importing (1.5 h) or <code>rr snapshot restore</code></td></tr>
+  <tr><td>Unity Library</td><td class="mono">libraryDir</td><td class="mono" id="sz-library">~5 GB after an import, ~28 GB after player builds</td><td>Build caches: <code>rr clean build</code> (the next build takes longer). Everything: <code>rr clean library</code>; Unity reimports on next open</td></tr>
+  <tr><td>Rebuild pack</td><td class="mono">workDir\pack</td><td class="mono">2.4 GB + 758 MB GRF</td><td>Keep: it's the import source. <code>rr pack</code> rebuilds it in ~3.5 min; <code>rr clean data</code> deletes only the GRF</td></tr>
+  <tr><td>Snapshots</td><td class="mono">workDir\snapshots</td><td class="mono">15 GB each, 19.8 GB baked</td><td><code>rr snapshot delete -Name n</code>; only costs a reimport later</td></tr>
+  <tr><td>Reference walk data</td><td class="mono">workDir\reference</td><td class="mono">53 MB</td><td><code>rr reference -Force</code> recreates it</td></tr>
+  <tr><td>Player build</td><td class="mono">workDir\Build\PC (+ PC-symbols)</td><td class="mono" id="sz-build">2.5 GB (3.7 GB baked) + 1 GB symbols</td><td><code>rr clean build</code></td></tr>
+  <tr><td>Releases</td><td class="mono">workDir\release</td><td class="mono">3.9 GB folder + 2.3 GB archive each</td><td>Yes; <code>rr release</code> makes them again. Keep the archive if you share it</td></tr>
+  <tr><td>Shared bundle</td><td class="mono">workDir\share</td><td class="mono">8.2 GB each</td><td>Yes; it's packed again from the GRF and the snapshot in about 35 minutes</td></tr>
+  <tr><td>Unity 6000.3.19f1 + IL2CPP module</td><td class="mono">C:\Program Files\Unity\Hub\Editor</td><td class="mono">8.6 GB</td><td><code>unity uninstall 6000.3.19f1</code></td></tr>
+  <tr><td>Unity CLI download cache</td><td class="mono">%APPDATA%\UnityHub\downloads</td><td class="mono">0 (cleared)</td><td>Always; <code>rr clean</code> clears it</td></tr>
+  <tr><td>Server bin/obj</td><td class="mono">RoRebuildServer\*\{bin,obj}</td><td class="mono">~0.4 GB</td><td><code>rr clean</code> removes obj; rebuilt on demand</td></tr>
+</table>
+<ul>
+  <li><code>.\rr disk</code> prints current sizes and free space per drive. <code>.\rr doctor</code> warns when a drive drops under 15 GB.</li>
+  <li><code>.\rr clean</code> removes only regenerable junk (Unity Temp, old logs, obj folders, the CLI cache). <code>build</code>, <code>data</code>, <code>imported</code>, <code>library</code> and <code>all</code> go further and ask before deleting anything expensive. <code>imported</code> uses <code>git clean -X</code> on the importer's folders, so it only ever removes ignored files.</li>
+  <li><b>What else can go:</b> the report's <i>Project cleanup</i> section lists every file with a verdict and the evidence behind it. <i>Safe</i> covers build output, logs, Unity temp, IDE project files and empty untracked folders. <i>Review</i> covers the 44 tracked assets nothing in use references (test scenes, legacy prefabs, unused materials). An asset only referenced by other unused ones counts as unused, and the evidence names the referrer: <code>DustStorm (7).prefab</code> is only placed in the <code>OtherCinemachine</code> test scene, and <code>black.mat</code> only in <code>LightmapTestScene</code>. Scenes in Build Settings, addressable entries and <code>Resources</code> are entry points, so nothing they reach is flagged. <i>Upstream-sparse</i> covers other tracked leftovers, such as merge backups (<code>.orig</code>). To drop one from the fork, delete it and add its path to <code>setup\fork-overrides.txt</code>, so <code>rr sync</code> keeps it deleted. Only list files upstream no longer edits, because sync drops upstream's changes to listed paths. For anything else, hide it locally with <code>git sparse-checkout</code>.</li>
+  <li><code>.\rr library-link &lt;dir&gt;</code> moves the Library to another drive behind a junction. Cleaning the Library empties the target but keeps the junction.</li>
+  <li>Client GRFs are never copied whole: the pack reads just the needed entries straight out of each GRF, so they can stay on a network share.</li>
+</ul>
+
+<h2 id="trouble">Troubleshooting</h2>
+<table>
+  <tr><th>Symptom</th><th>Cause / fix</th></tr>
+  <tr><td>"winget is missing"</td><td>App Installer isn't installed or not registered yet (a fresh Windows registers it after the first sign-in and a Store update). Install App Installer from the Microsoft Store, or install the tools from the links rr prints, then rerun.</td></tr>
+  <tr><td>".NET 9 SDK missing" although <code>dotnet --version</code> works</td><td>Only a newer SDK is installed. The server and tools need the .NET 9 runtimes; <code>rr prereqs</code> installs the 9 SDK alongside it.</td></tr>
+  <tr><td>A tool was installed but rr can't find it</td><td>rr adds new PATH entries from the registry every time it starts, so a new terminal isn't needed. If it still isn't found, the installer didn't add it to PATH; <code>rr doctor</code> shows which tool.</td></tr>
+  <tr><td>Unity install fails, "installer exited with code 2"</td><td>The MSIX (winget) Unity CLI. Run <code>rr install-unity</code>, which replaces it.</td></tr>
+  <tr><td>"RebuildClient is open in a Unity Editor"</td><td>Batch mode needs exclusive access. Close the editor and rerun.</td></tr>
+  <tr><td>Batch run fails with license errors</td><td><code>unity auth login</code>, then <code>unity license activate --personal --accept-eula</code> (or <code>rr install-unity</code>).</td></tr>
+  <tr><td><code>rr pack</code> reports unresolved references</td><td>Open <code>packDir\report.html</code> → Issues. Add a client that has the file as another pack source, drop the file into the Custom folder, or add a stand-in to <code>setup\pack\aliases.json</code> with a reason.</td></tr>
+  <tr><td>A map looks wrong in game</td><td>Check it in the report's map table: source, RSW version, whether it was converted and how its walk data compares with the release.</td></tr>
+  <tr><td>git status full of ProjectSettings/asset changes with no diff</td><td><code>core.autocrlf=true</code> vs Unity's LF writes. <code>rr git-setup</code> sets <code>input</code>. For real regenerations use <code>rr generated hide</code>.</td></tr>
+  <tr><td>GameConfig.dll / RebuildSharedData.dll modified</td><td>Rebuilt DLLs never match byte for byte. <code>rr update-client</code> restores the committed ones unless you changed shared code (<code>-KeepDlls</code> keeps them).</td></tr>
+  <tr><td>Effects are white rectangles</td><td>Ragnarok &gt; Import and Update Skill Effect Atlas (the full import already runs it).</td></tr>
+  <tr><td>Item sprite errors when logging in</td><td>Ragnarok &gt; Import Skill and Item Icons, then <code>rr addressables</code>.</td></tr>
+  <tr><td>New sprites/maps don't load at runtime</td><td><code>rr addressables</code> after adding them.</td></tr>
+  <tr><td>Build fails with "Unable to build with the current configuration" / <code>SBP ErrorException</code></td><td>The Windows IL2CPP module is missing (the editor alone only has Mono). <code>rr install-unity</code> adds it; <code>rr doctor</code> checks it.</td></tr>
+  <tr><td>Monsters or equipment invisible in game</td><td>Sprites without sprite data, usually after an interrupted import. <code>rr import</code> (or <code>rr addressables</code>) converts them; <code>rr report</code> should show "0 sprite(s) unconverted".</td></tr>
+  <tr><td>Import log: "Sprite file is missing: 1_남_1.spr" … "1_여_8.act" (32 lines)</td><td>Expected. Upstream's check looks for the default hairstyle's colours as sprite files, but they're palette variants the importer builds (<code>1_남_1.asset</code> …).</td></tr>
+  <tr><td>Where are the logs?</td><td>Unity: <code>RebuildClient\Logs\rr-&lt;step&gt;.log</code>. Server: <code>RoRebuildServer\RoRebuildServer\Logs</code>. rr prints the relevant lines live.</td></tr>
+</table>
+
+<h2 id="reference">Command reference</h2>
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td class="mono">setup\bootstrap.ps1</td><td>Bare machine: Git, clone of <code>dev</code>, then <code>rr setup</code> (<a href="#bootstrap">one-liner</a>)</td></tr>
+  <tr><td class="mono">rr setup</td><td>First-time pipeline: init → prereqs → git-setup → install-unity → library-link → server-build → update-client → pack → import</td></tr>
+  <tr><td class="mono">rr prereqs [-Yes]</td><td>Check tools and free space; install what's missing with winget after one question</td></tr>
+  <tr><td class="mono">rr doctor</td><td>Checks git wiring, hooks, tools, license, data, import counts and disk</td></tr>
+  <tr><td class="mono">rr init [-Force]</td><td>Write/refresh <code>setup\config.local.json</code></td></tr>
+  <tr><td class="mono">rr git-setup</td><td>Remotes, work branch, hooks, autocrlf</td></tr>
+  <tr><td class="mono">rr sync [-Push]</td><td>Mirror master, merge upstream into your branch</td></tr>
+  <tr><td class="mono">rr generated [list|hide|reveal|discard]</td><td>Manage tracked files the importers regenerate</td></tr>
+  <tr><td class="mono">rr install-unity</td><td>Standalone Unity CLI, editor, sign-in and license (only when none is activated), cache cleanup</td></tr>
+  <tr><td class="mono">rr reference [-Force]</td><td>Doddler's release walk data → referenceWalk</td></tr>
+  <tr><td class="mono">rr pack</td><td>Build the Rebuild pack + report (incremental) and compare it with the fork's fingerprint</td></tr>
+  <tr><td class="mono">rr fingerprint</td><td>Make this pack the one others compare with (writes <code>setup\pack\fingerprint.tsv</code>)</td></tr>
+  <tr><td class="mono">rr server-build</td><td>Build the server solution</td></tr>
+  <tr><td class="mono">rr update-client [-KeepDlls]</td><td>updateclient.bat, non-interactive</td></tr>
+  <tr><td class="mono">rr server [RoRebuildServer|Minimal]</td><td>Run the server</td></tr>
+  <tr><td class="mono">rr import [minimum|medium|full] [-Force]</td><td>BGM + headless profile import + addressables, remaking only what the pack changed</td></tr>
+  <tr><td class="mono">rr addressables</td><td>Refresh addressable groups</td></tr>
+  <tr><td class="mono">rr bake [maps] [-Force]</td><td>Headless lighting bake</td></tr>
+  <tr><td class="mono">rr minimaps [maps] [-Force]</td><td>Render minimaps</td></tr>
+  <tr><td class="mono">rr report</td><td>Import counts from inside Unity</td></tr>
+  <tr><td class="mono">rr build-client [dir] [-Force]</td><td>Windows player build with Local addressables, skipped when the project hasn't changed</td></tr>
+  <tr><td class="mono">rr play</td><td>Launch the built client</td></tr>
+  <tr><td class="mono">rr smoke</td><td>End-to-end test of the build: server + client create an account and a character, enter the world, save a screenshot</td></tr>
+  <tr><td class="mono">rr release [dir] [-NoBuild]</td><td>Shareable Client + Server package with Play.cmd and a readme, smoke-tested with its own server, then 7z'd</td></tr>
+  <tr><td class="mono">rr editor</td><td>Open the project in Unity</td></tr>
+  <tr><td class="mono">rr disk</td><td>Sizes and free space</td></tr>
+  <tr><td class="mono">rr library-link [dir]</td><td>Move the Unity Library behind a junction (also re-links an existing one)</td></tr>
+  <tr><td class="mono">rr perf [undo]</td><td>Defender exclusions for project, Library and pack (elevated shell)</td></tr>
+  <tr><td class="mono">rr snapshot [list|save|restore|delete] [-Name n] [-NoLibrary]</td><td>Save or restore the imported client state for fast reinstalls</td></tr>
+  <tr><td class="mono">rr clean [temp|build|data|imported|library|all]</td><td>Remove regenerable files</td></tr>
+</table>
+<p class="muted">Run through <code>rr.cmd</code> (it prefers PowerShell 7 and falls back to Windows PowerShell 5.1). The script is <code>setup\rr.ps1</code>.</p>
+
+<footer>Written for the geocine fork of Doddler's Ragnarok Rebuild (TCP/IP WebSocket version). Upstream: <a href="https://github.com/Doddler/RagnarokRebuildTcp">github.com/Doddler/RagnarokRebuildTcp</a> · Unity CLI docs: <a href="https://docs.unity.com/en-us/unity-cli/use-unity-cli">docs.unity.com/en-us/unity-cli</a></footer>
+</main>
+</div>
+<script>
+  document.querySelectorAll('.card .v').forEach(function (el) {
+    el.innerHTML = el.textContent.replace(/\\/g, '\\<wbr>');
+  });
+  document.querySelectorAll('.code').forEach(function (block) {
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = block.querySelector('pre').innerText.split('\n')
+        .map(function (l) { return l.replace(/\s+#.*$/, ''); })
+        .filter(function (l) { return l.trim().length; }).join('\n');
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+      });
+    });
+    block.appendChild(btn);
+  });
+
+  var root = document.documentElement, themeButton = document.querySelector('.theme');
+  function showTheme() { themeButton.textContent = root.dataset.theme === 'dark' ? 'Light mode' : 'Dark mode'; }
+  themeButton.addEventListener('click', function () {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('rr-guide-theme', root.dataset.theme); } catch (e) {}
+    showTheme();
+  });
+  showTheme();
+
+  // Highlight the section being read in the sidebar and fill the progress bar.
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('nav a[href^="#"]'));
+  var progress = document.querySelector('.progress'), pending = false;
+  function onScroll() {
+    pending = false;
+    var line = window.innerHeight * 0.3, current = null, currentTop = -Infinity;
+    navLinks.forEach(function (a) {
+      var target = document.getElementById(a.getAttribute('href').slice(1));
+      if (!target) return;
+      var top = target.getBoundingClientRect().top;
+      if (top <= line && top > currentTop) { current = a; currentTop = top; }
+    });
+    navLinks.forEach(function (a) { a.classList.toggle('active', a === current); });
+    if (current) {
+      var nav = current.parentNode, r = current.getBoundingClientRect(), n = nav.getBoundingClientRect();
+      if (r.top < n.top || r.bottom > n.bottom) nav.scrollTop += r.top - n.top - n.height / 2;
+    }
+    var max = root.scrollHeight - window.innerHeight;
+    progress.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, window.scrollY / max) : 0) + ')';
+  }
+  window.addEventListener('scroll', function () { if (!pending) { pending = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  window.addEventListener('resize', onScroll);
+  onScroll();
+</script>
+</body>
+</html>
