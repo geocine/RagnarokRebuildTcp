@@ -14,24 +14,38 @@
         & ([scriptblock]::Create((irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1))) -Dir D:\RagnarokRebuildTcp -Yes
     Or from a downloaded copy:
         powershell -ExecutionPolicy Bypass -File bootstrap.ps1 -Dir D:\RagnarokRebuildTcp
+    From the fork's shared files instead of your own clients:
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1))) -Bundle D:\Downloads\RagnarokRebuild-baked-2026-10-02.7z
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/geocine/RagnarokRebuildTcp/dev/setup/bootstrap.ps1))) -Grf D:\Downloads\rebuild-pack.grf
 #>
 param(
     # Folder to clone into; asked for when not given.
     [string]$Dir,
     [string]$Repo = "https://github.com/geocine/RagnarokRebuildTcp.git",
     [string]$Branch = "dev",
-    # Install without asking. rr init still asks for the work folder and the client data.
+    # A rebuild-pack.grf to set up from ('rr use-grf') instead of your own client GRFs.
+    [string]$Grf,
+    # A baked bundle, RagnarokRebuild-baked-<date>.7z, to set up from ('rr use-bundle').
+    [string]$Bundle,
+    # Install without asking. rr still asks for the work folder (and, without -Grf or -Bundle, the client data).
     [switch]$Yes
 )
 
 # Everything runs inside a function: under 'irm | iex' this script shares the caller's session,
 # so it must not change their preferences or close their window with exit.
-function Invoke-RagnarokBootstrap([string]$Dir, [string]$Repo, [string]$Branch, [bool]$Yes) {
+function Invoke-RagnarokBootstrap([string]$Dir, [string]$Repo, [string]$Branch, [string]$Grf, [string]$Bundle, [bool]$Yes) {
     $ErrorActionPreference = "Stop"
     function Write-Step([string]$msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
     function Test-Command([string]$name) { return [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
     if ($env:OS -ne "Windows_NT") { throw "Ragnarok Rebuild's setup needs Windows 10 21H1 or later." }
+    if ($Grf -and $Bundle) { throw "Give -Grf or -Bundle, not both: the bundle already holds the GRF." }
+    foreach ($file in @($Grf, $Bundle) | Where-Object { $_ }) {
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Not found: $file" }
+    }
+    # rr runs from the clone, so relative paths are resolved against this window's folder first.
+    if ($Grf) { $Grf = (Resolve-Path -LiteralPath $Grf).ProviderPath }
+    if ($Bundle) { $Bundle = (Resolve-Path -LiteralPath $Bundle).ProviderPath }
 
     if (-not (Test-Command git)) {
         if (-not (Test-Command winget)) {
@@ -72,16 +86,28 @@ function Invoke-RagnarokBootstrap([string]$Dir, [string]$Repo, [string]$Branch, 
     }
 
     $rr = Join-Path $Dir "rr.cmd"
-    $rrArgs = @("setup")
+    if ($Bundle) {
+        $rrArgs = @("use-bundle", $Bundle)
+        Write-Step "Running rr use-bundle: it asks for a work folder, extracts the bundle into it, then installs the rest and restores the baked client"
+    } elseif ($Grf) {
+        $rrArgs = @("use-grf", $Grf)
+        Write-Step "Running rr use-grf: it asks for a work folder, installs the rest and imports the client from the GRF"
+    } else {
+        $rrArgs = @("setup")
+        Write-Step "Running rr setup: it installs the rest, then asks for a work folder and your client data"
+    }
     if ($Yes) { $rrArgs += "-Yes" }
-    Write-Step "Running rr setup: it installs the rest, then asks for a work folder and your client data"
     & $rr @rrArgs
-    if ($LASTEXITCODE -ne 0) { throw "rr setup stopped (exit $LASTEXITCODE). Fix what it reported, then run '$rr setup' again; it carries on where it stopped." }
+    if ($LASTEXITCODE -ne 0) {
+        $code = $LASTEXITCODE
+        $again = "& '$rr' $(($rrArgs | ForEach-Object { if ($_ -match '\s') { "'$_'" } else { $_ } }) -join ' ')"
+        throw "rr $($rrArgs[0]) stopped (exit $code). Fix what it reported, then run $again; it carries on where it stopped."
+    }
     Write-Step "Ready. Use $rr from now on ('rr help' lists the commands)."
 }
 
 try {
-    Invoke-RagnarokBootstrap $Dir $Repo $Branch $Yes.IsPresent
+    Invoke-RagnarokBootstrap $Dir $Repo $Branch $Grf $Bundle $Yes.IsPresent
 } catch {
     Write-Host $_.Exception.Message -ForegroundColor Red
     if ($PSCommandPath) { exit 1 }

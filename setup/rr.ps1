@@ -828,6 +828,13 @@ Ragnarok Rebuild fork helper  (run from the repo root as: .\rr <command> [target
                         install-unity, library-link, server-build, update-client, pack, then import
                         (into a fresh project, the latest snapshot is restored first when it
                         matches the pack or records what it was imported from)
+   use-grf <file>       Setup from a rebuild-pack.grf alone: it becomes the only pack source (no
+                        clients, BGM or release archive), then setup imports everything from it,
+                        or restores a snapshot of that pack if the work folder has one
+   use-bundle <file>    Setup from a baked bundle (RagnarokRebuild-baked-<date>.7z): extracts its
+                        GRF and snapshot into the work folder, then setup restores the snapshot
+                        instead of importing, lighting and minimaps included (-Name: the name
+                        the snapshot gets, default latest)
    doctor               Check prerequisites, git wiring, data, import state and disk space, and
                         list anything a stopped command left half done (rerunning it carries on)
 
@@ -898,17 +905,20 @@ Ragnarok Rebuild fork helper  (run from the repo root as: .\rr <command> [target
 "@ | Write-Host
 }
 
-function Invoke-Init {
-    $cfg = Read-Config
-    if ($cfg.workDir -and @($cfg.packSources).Count -gt 0 -and -not $Force) { Write-Ok "config.local.json already complete (use -Force to redo)"; return }
-    $values = @{}
-
+function Read-WorkDir {
     $best = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -match '^[A-Z]:\\$' -and $_.Free -gt 20GB -and $_.DisplayRoot -notlike '\\*' } |
         Sort-Object Free -Descending | Select-Object -First 1
     $suggest = if ($best) { Join-Path $best.Root "RagnarokRebuildData" } else { Join-Path (Split-Path $RepoRoot -Parent) "RagnarokRebuildData" }
     Write-Host "    The work folder holds the pack and the Unity cache (~15 GB). Player builds add ~25 GB and each snapshot ~15 GB."
-    $answer = Read-Host "Work folder, outside the repo [$suggest]"
-    $values.workDir = if ([string]::IsNullOrWhiteSpace($answer)) { $suggest } else { $answer }
+    $answer = (Read-Host "Work folder, outside the repo [$suggest]").Trim('"', ' ')
+    if ([string]::IsNullOrWhiteSpace($answer)) { return $suggest }
+    return $answer
+}
+
+function Invoke-Init {
+    $cfg = Read-Config
+    if ($cfg.workDir -and @($cfg.packSources).Count -gt 0 -and -not $Force) { Write-Ok "config.local.json already complete (use -Force to redo)"; return }
+    $values = @{ workDir = Read-WorkDir }
 
     Write-Host "    Client data sources, highest priority first. The pack takes each file from the first client that has it"
     Write-Host "    (maps are chosen by matching Doddler's release instead). Use kRO clients with Korean file names."
@@ -950,6 +960,130 @@ function Invoke-Init {
 
     Save-LocalConfig $values
     Write-Ok "Saved setup\config.local.json"
+}
+
+# A rebuild-pack.grf holds every file, the music and Doddler's walk data, so it replaces the client list.
+function Set-PackGrfSource([string]$grf, [string]$workDir) {
+    $cfg = Read-Config
+    $values = @{}
+    if (-not $cfg.workDir) { $values.workDir = $workDir }
+    $packDir = if ($cfg.packDir) { $cfg.packDir } else { Join-Path $workDir "pack" }
+    if ($grf -eq [System.IO.Path]::GetFullPath((Join-Path $packDir "rebuild-pack.grf"))) {
+        Fail "$grf is the GRF 'rr pack' writes, so packing would overwrite its own source. Copy it out of $packDir (into $workDir, say) and give the copy."
+    }
+    $current = @($cfg.packSources | Where-Object { $_ })
+    if (-not ($current.Count -eq 1 -and [System.IO.Path]::GetFullPath("$($current[0].path)") -eq $grf)) {
+        if ($current.Count -gt 0) {
+            Write-Host "    packSources now: $(($current | ForEach-Object { $_.name }) -join ', ')"
+            if (-not (Confirm-Action "Replace them with $grf?" -DefaultYes)) { Fail "packSources left as they were." }
+        }
+        $values.packSources = @(@{ name = "Rebuild pack"; path = $grf })
+    }
+    if ($values.Count -gt 0) { Save-LocalConfig $values; Write-Ok "saved setup\config.local.json; pack source: $grf" }
+    else { Write-Ok "pack source: $grf" }
+}
+
+function Invoke-UseGrf {
+    if (-not $Target) { Fail "Give the GRF: rr use-grf <path to rebuild-pack.grf>" }
+    $grf = [System.IO.Path]::GetFullPath($Target.Trim('"', ' '))
+    if (-not (Test-Path -LiteralPath $grf -PathType Leaf)) { Fail "Not found: $grf" }
+    if (-not (Test-PackGrf $grf)) { Fail "$(Split-Path $grf -Leaf) isn't a pack GRF ('rr pack' names it rebuild-pack.grf). A client's data.grf goes in through 'rr init -Force'." }
+    $cfg = Read-Config
+    Write-Step "Setting up from $grf"
+    Set-PackGrfSource $grf $(if ($cfg.workDir) { $cfg.workDir } else { Read-WorkDir })
+    Invoke-Setup
+}
+
+# The baked bundle is a work folder in an archive: rebuild-pack.grf at its root and a snapshot saved
+# from that same pack under snapshots\, so setup rebuilds the pack and restores instead of importing.
+function Invoke-UseBundle {
+    if (-not $Target) { Fail "Give the bundle: rr use-bundle <path to RagnarokRebuild-baked-<date>.7z>" }
+    $archive = [System.IO.Path]::GetFullPath($Target.Trim('"', ' '))
+    if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { Fail "Not found: $archive" }
+    $file = Get-Item -LiteralPath $archive
+    Assert-Tools @("sevenzip") "Extracting $($file.Name)"
+    $sevenZip = Get-SevenZip
+
+    $listing = @((Get-NativeOutput $sevenZip @("l", "-ba", $archive, "rebuild-pack.grf", "snapshots\*\snapshot.json", "-r-")) -split "`n")
+    if ($script:NativeExit -ne 0) { Fail "7-Zip can't read $archive" }
+    $bundleSnap = $listing | ForEach-Object { if ($_ -match '\ssnapshots\\([^\\]+)\\snapshot\.json$') { $Matches[1] } } | Select-Object -First 1
+    if (-not ($listing -match '\srebuild-pack\.grf$') -or -not $bundleSnap) {
+        Fail "$($file.Name) isn't a baked bundle: one has rebuild-pack.grf and snapshots\<name>\snapshot.json at its root."
+    }
+
+    $cfg = Read-Config
+    $workDir = [System.IO.Path]::GetFullPath($(if ($cfg.workDir) { $cfg.workDir } else { Read-WorkDir }))
+    # Saved before the long extraction, so a rerun after an interruption finds its half-done copy.
+    if (-not $cfg.workDir) { Save-LocalConfig @{ workDir = $workDir } }
+    $grf = Join-Path $workDir "rebuild-pack.grf"
+    $snapDir = Join-Path $workDir "snapshots\$Name"
+    $markerFile = Join-Path $workDir "bundle.json"
+    $stamp = "$($file.Name) $($file.Length) $($file.LastWriteTimeUtc.ToString('o'))"
+    $marker = $null
+    if (Test-Path -LiteralPath $markerFile) { try { $marker = Get-Content -LiteralPath $markerFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch { } }
+
+    if ($marker -and $marker.archive -eq $stamp -and $marker.snapshot -eq $Name -and (Test-Path -LiteralPath $grf) -and (Test-Path -LiteralPath (Join-Path $snapDir "snapshot.json"))) {
+        Write-Ok "$($file.Name) is already extracted into $workDir"
+    } else {
+        # Extracted into a staging folder first and marked complete there, so a cut-off extraction is
+        # redone and one that finished is only moved into place (a rename, same drive).
+        $staging = Join-Path $workDir "bundle$TempSuffix"
+        if (-not (Test-Path -LiteralPath (Join-Path $staging $SwapMarker))) {
+            if (Test-Path -LiteralPath $staging) { Remove-PathSafe $staging "the extraction an earlier run left unfinished" }
+            $summary = (Get-NativeOutput $sevenZip @("l", $archive)) -split "`n" | Select-Object -Last 1
+            $need = if ($summary -match '\s(\d+)\s+\d+\s+\d+ files') { [long]$Matches[1] } else { 0 }
+            $free = Get-FreeBytes $workDir
+            if ($free -ge 0 -and $free -lt $need) { Fail "Extracting $($file.Name) takes $(Format-Size $need) on $([System.IO.Path]::GetPathRoot($workDir)), which has $(Format-Size $free) free." }
+            Write-Step "Extracting $($file.Name) into $workDir ($(Format-Size $need); 13 minutes on the machine that made it)"
+            New-Item -ItemType Directory -Force $staging | Out-Null
+            $log = Join-Path $env:TEMP "rr-use-bundle-7z.log"
+            $argLine = "x `"$archive`" `"-o$staging`" -aoa -y -bso0 -bsp0 `"-x!README-master-*.txt`""
+            $p = Start-Process -FilePath $sevenZip -ArgumentList $argLine -NoNewWindow -PassThru -RedirectStandardError $log
+            $null = $p.Handle
+            $startFree = Get-FreeBytes $workDir
+            try {
+                while (-not $p.WaitForExit(60000)) {
+                    Write-Host "    $(Format-Size ([Math]::Max([long]0, $startFree - (Get-FreeBytes $workDir)))) of $(Format-Size $need)"
+                }
+                $p.WaitForExit()
+            } finally {
+                if (-not $p.HasExited) { $p.Kill() }
+            }
+            if ($p.ExitCode -ne 0) {
+                Get-Content -LiteralPath $log -Tail 20 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    | $_" }
+                Fail "7-Zip stopped extracting $($file.Name) (exit $($p.ExitCode)). Rerun 'rr use-bundle' to try again."
+            }
+            Write-TextAtomic (Join-Path $staging $SwapMarker) ""
+        }
+        $stagedGrf = Join-Path $staging "rebuild-pack.grf"
+        if (Test-Path -LiteralPath $stagedGrf) { Move-FileOver $stagedGrf $grf }
+        $stagedSnap = Join-Path $staging "snapshots\$bundleSnap"
+        if (Test-Path -LiteralPath $stagedSnap) {
+            if (Test-Path -LiteralPath $snapDir) {
+                if (-not (Confirm-Action "Replace snapshot '$Name' in $(Split-Path $snapDir) with the bundle's?" -DefaultYes)) { Fail "Kept snapshot '$Name'. Pass -Name <another name> to put the bundle's beside it." }
+                Remove-PathSafe $snapDir "snapshot $Name"
+            }
+            New-Item -ItemType Directory -Force (Split-Path $snapDir) | Out-Null
+            [System.IO.Directory]::Move($stagedSnap, $snapDir)
+        }
+        if (-not (Test-Path -LiteralPath $grf) -or -not (Test-Path -LiteralPath (Join-Path $snapDir "snapshot.json"))) {
+            Fail "The extracted bundle is missing from $workDir. Delete $staging and rerun 'rr use-bundle'."
+        }
+        Remove-Item -LiteralPath $staging -Recurse -Force
+        Write-TextAtomic $markerFile (@{ archive = $stamp; snapshot = $Name; extracted = (Get-Date).ToString("yyyy-MM-dd HH:mm") } | ConvertTo-Json)
+        Write-Ok "rebuild-pack.grf and snapshot '$Name' are in $workDir"
+    }
+
+    Set-PackGrfSource $grf $workDir
+    $nameArg = if ($Name -ne "latest") { " -Name $Name" } else { "" }
+    if (Test-Path -LiteralPath (Get-RecordPath "ledger.tsv")) {
+        if (Confirm-Action "This clone already has imported client data. Replace it with the bundle's snapshot?" -DefaultYes) { $script:ReplaceImport = $true }
+        else { Write-Ok "keeping the current import; 'rr snapshot restore$nameArg' brings in the bundle's later" }
+    }
+    Invoke-Setup
+    $snapBytes = [long](Get-Content -LiteralPath (Join-Path $snapDir "snapshot.json") -Raw -Encoding UTF8 | ConvertFrom-Json).bytes
+    Write-Host "    $($file.Name) can be deleted now. 'rr snapshot delete$nameArg' frees the snapshot ($(Format-Size $snapBytes)) if you won't reinstall from it."
+    Write-Host "    Keep $grf`: every 'rr pack' reads it."
 }
 
 function Invoke-GitSetup {
@@ -2585,7 +2719,11 @@ function Invoke-Setup {
     $packSig = Get-PackSignature
     $snap = if ($snapDir -and (Test-Path (Join-Path $snapDir "snapshot.json"))) { Get-Content (Join-Path $snapDir "snapshot.json") -Raw | ConvertFrom-Json } else { $null }
     $snapRecords = $snap -and (Test-Path -LiteralPath (Join-Path $snapDir "repo\RebuildClient\Assets\Scenes\Maps\.rr-import\ledger.tsv"))
-    $restore = $snap -and -not $Force -and -not (Test-Path -LiteralPath (Get-RecordPath "ledger.tsv")) -and ($snapRecords -or ($packSig -and $snap.pack -eq $packSig))
+    $imported = (Test-Path -LiteralPath (Get-RecordPath "ledger.tsv")) -and -not $script:ReplaceImport
+    $restore = $snap -and -not $Force -and -not $imported -and ($snapRecords -or ($packSig -and $snap.pack -eq $packSig))
+    if ($snap -and -not $Force -and -not $imported -and -not $restore) {
+        Write-Warn2 "snapshot '$Name' was saved from another pack ($($snap.pack); this one is $packSig), so setup imports instead of restoring it"
+    }
     if ($restore) {
         $script:Target = "restore"
         Invoke-Snapshot
@@ -2597,7 +2735,8 @@ function Invoke-Setup {
     Write-Step "Setup complete"
     Write-Host "    Next: 'rr server' in one terminal, then 'rr editor' and press Play (or 'rr build-client' + 'rr play')."
     Write-Host "    Check a build end to end with 'rr smoke'; save the imported state with 'rr snapshot save'."
-    Write-Host "    Optional: 'rr bake' (lighting, overnight) then 'rr minimaps'."
+    if ($restore) { Write-Host "    'rr bake' only bakes the maps the snapshot left unlit." }
+    else { Write-Host "    Optional: 'rr bake' (lighting, overnight) then 'rr minimaps'." }
 }
 
 # RebuildAutomation's own records (Library\rr-journal) of work a killed Unity left unfinished.
@@ -2705,6 +2844,8 @@ try {
         "help" { Show-Help }
         "init" { Invoke-Init }
         "setup" { Invoke-Setup }
+        "use-grf" { Invoke-UseGrf }
+        "use-bundle" { Invoke-UseBundle }
         "prereqs" { Invoke-Prereqs }
         "doctor" { Invoke-Doctor }
         "git-setup" { Invoke-GitSetup }
