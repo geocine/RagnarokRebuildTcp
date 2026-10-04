@@ -1,0 +1,317 @@
+{
+  "about": "Shots for 'rr showcase': every file the pack adds, stands in or fixes, seen in game. The client runs each shot's chat commands, waits, and saves a screenshot with the title, the 'look' text and a box around 'focus'. 'expect' must appear in what the client measured, or the shot is flagged. 'files' are pack paths; rr shows where each came from.",
+  "setup": ["/adminify {pass}", "/god", "/killall"],
+  "shots": [
+    {
+      "id": "bard-male", "group": "Bard and Dancer", "title": "Bard, male character",
+      "look": "The Bard body. Rebuild's job table gives Bard one body for both genders; only the head follows the character's gender.",
+      "commands": ["/change gender 0", "/change job 15"], "zoom": 30, "focus": "player", "expect": "job 15, male", "wait": 4,
+      "files": ["sprite/인간족/몸통/남/바드_남.spr"]
+    },
+    {
+      "id": "bard-female", "group": "Bard and Dancer", "title": "Bard, female character",
+      "look": "The same Bard body as the male shot, with a female head. Official RO has no female Bard; the pack copies the male body into the female folder, where the importer looks for it.",
+      "commands": ["/change gender 1"], "zoom": 30, "focus": "player", "expect": "job 15, female", "wait": 4,
+      "files": ["sprite/인간족/몸통/여/바드_남.spr"]
+    },
+    {
+      "id": "dancer-female", "group": "Bard and Dancer", "title": "Dancer, female character",
+      "look": "The Dancer body. Like Bard, Dancer has one body for both genders.",
+      "commands": ["/change job 16"], "zoom": 30, "focus": "player", "expect": "job 16, female", "wait": 4,
+      "files": ["sprite/인간족/몸통/여/무희바지_여.spr"]
+    },
+    {
+      "id": "dancer-male", "group": "Bard and Dancer", "title": "Dancer, male character",
+      "look": "The same Dancer body as the female shot, with a male head. Official RO has no male Dancer; the pack copies the female body into the male folder.",
+      "commands": ["/change gender 0"], "zoom": 30, "focus": "player", "expect": "job 16, male", "wait": 4,
+      "files": ["sprite/인간족/몸통/남/무희바지_여.spr"]
+    },
+
+    {
+      "id": "hair35m-c0", "group": "Hair colours", "title": "Hair 35 (male), colour 0",
+      "look": "Colour 0 is the sprite's own palette. The next shot uses colour 1, the palette kRO never shipped.",
+      "commands": ["/change job 0", "/change hair 34 0"], "zoom": 30, "focus": "player", "expect": "hair 34 colour 0", "wait": 3
+    },
+    {
+      "id": "hair35m-c1", "group": "Hair colours", "title": "Hair 35 (male), colour 1: derived palette",
+      "look": "This colour's palette is in no kRO client; the pack derives it from the sprite's own palette. The hair should be drawn and look like the previous shot.",
+      "commands": ["/change hair 34 1"], "zoom": 30, "focus": "player", "expect": "hair 34 colour 1", "wait": 3,
+      "files": ["palette/머리/머리35_남_0.pal"]
+    },
+    {
+      "id": "hair37m-c0", "group": "Hair colours", "title": "Hair 37 (male), colour 0",
+      "look": "The sprite's own palette, for comparison with the next shot.",
+      "commands": ["/change hair 36 0"], "zoom": 30, "focus": "player", "expect": "hair 36 colour 0", "wait": 3
+    },
+    {
+      "id": "hair37m-c1", "group": "Hair colours", "title": "Hair 37 (male), colour 1: derived palette",
+      "look": "Derived from the sprite's own palette: drawn, and the same as the previous shot.",
+      "commands": ["/change hair 36 1"], "zoom": 30, "focus": "player", "expect": "hair 36 colour 1", "wait": 3,
+      "files": ["palette/머리/머리37_남_0.pal"]
+    },
+    {
+      "id": "hair39m-c0", "group": "Hair colours", "title": "Hair 39 (male), colour 0",
+      "look": "The sprite's own palette, for comparison with the next shot.",
+      "commands": ["/change hair 38 0"], "zoom": 30, "focus": "player", "expect": "hair 38 colour 0", "wait": 3
+    },
+    {
+      "id": "hair39m-c1", "group": "Hair colours", "title": "Hair 39 (male), colour 1: derived palette",
+      "look": "Derived from the sprite's own palette: drawn, and the same as the previous shot.",
+      "commands": ["/change hair 38 1"], "zoom": 30, "focus": "player", "expect": "hair 38 colour 1", "wait": 3,
+      "files": ["palette/머리/머리39_남_0.pal"]
+    },
+    {
+      "id": "hair40m-c0", "group": "Hair colours", "title": "Hair 40 (male), colour 0",
+      "look": "The sprite's own palette, for comparison with the next shot.",
+      "commands": ["/change hair 39 0"], "zoom": 30, "focus": "player", "expect": "hair 39 colour 0", "wait": 3
+    },
+    {
+      "id": "hair40m-c1", "group": "Hair colours", "title": "Hair 40 (male), colour 1: derived palette",
+      "look": "Derived from the sprite's own palette: drawn, and the same as the previous shot.",
+      "commands": ["/change hair 39 1"], "zoom": 30, "focus": "player", "expect": "hair 39 colour 1", "wait": 3,
+      "files": ["palette/머리/머리40_남_0.pal"]
+    },
+    {
+      "id": "hair36f-c0", "group": "Hair colours", "title": "Hair 36 (female), colour 0",
+      "look": "The sprite's own palette, for comparison with the next shot.",
+      "commands": ["/change gender 1", "/change hair 35 0"], "zoom": 30, "focus": "player", "expect": "hair 35 colour 0", "wait": 3
+    },
+    {
+      "id": "hair36f-c1", "group": "Hair colours", "title": "Hair 36 (female), colour 1: derived palette",
+      "look": "Derived from the sprite's own palette: drawn, and the same as the previous shot.",
+      "commands": ["/change hair 35 1"], "zoom": 30, "focus": "player", "expect": "hair 35 colour 1", "wait": 3,
+      "files": ["palette/머리/머리36_여_0.pal"]
+    },
+    {
+      "id": "hair40f-c0", "group": "Hair colours", "title": "Hair 40 (female), colour 0",
+      "look": "The sprite's own palette, for comparison with the next shot.",
+      "commands": ["/change hair 39 0"], "zoom": 30, "focus": "player", "expect": "hair 39 colour 0", "wait": 3
+    },
+    {
+      "id": "hair40f-c1", "group": "Hair colours", "title": "Hair 40 (female), colour 1: derived palette",
+      "look": "Derived from the sprite's own palette: drawn, and the same as the previous shot.",
+      "commands": ["/change hair 39 1"], "zoom": 30, "focus": "player", "expect": "hair 39 colour 1", "wait": 3,
+      "files": ["palette/머리/머리40_여_0.pal"]
+    },
+    {
+      "id": "hair41f-c0", "group": "Hair colours", "title": "Hair 41 (female), colour 0",
+      "look": "The sprite's own palette, for comparison with the next shot.",
+      "commands": ["/change hair 40 0"], "zoom": 30, "focus": "player", "expect": "hair 40 colour 0", "wait": 3
+    },
+    {
+      "id": "hair41f-c1", "group": "Hair colours", "title": "Hair 41 (female), colour 1: derived palette",
+      "look": "Derived from the sprite's own palette: drawn, and the same as the previous shot.",
+      "commands": ["/change hair 40 1"], "zoom": 30, "focus": "player", "expect": "hair 40 colour 1", "wait": 3,
+      "files": ["palette/머리/머리41_여_0.pal"]
+    },
+
+    {
+      "id": "deathspore", "group": "Custom monsters", "title": "Deathspore (Rebuild custom monster)",
+      "look": "Doddler's own sprite, from rebuild-pack.grf. A pack built from clients alone shows Poison Spore here (two shots on).",
+      "commands": ["/hide on", "/killall", "/summon DEATHSPORE -1"], "zoom": 35, "focus": "monster 6014", "expect": "class 6014", "wait": 3,
+      "files": ["sprite/몬스터/deathspore.spr", "sprite/몬스터/deathspore.act"]
+    },
+    {
+      "id": "fungus", "group": "Custom monsters", "title": "Fungus (Rebuild custom monster)",
+      "look": "Doddler's own sprite. A pack built from clients alone shows Poison Spore here (next shot).",
+      "commands": ["/killall", "/summon FUNGUS -1"], "zoom": 35, "focus": "monster 6013", "expect": "class 6013", "wait": 3,
+      "files": ["sprite/몬스터/fungus.spr", "sprite/몬스터/fungus.act"]
+    },
+    {
+      "id": "poison-spore", "group": "Custom monsters", "title": "Poison Spore, for comparison",
+      "look": "The stand-in a clients-only pack uses for Deathspore and Fungus. Those two shots should not look like this one.",
+      "commands": ["/killall", "/summon POISON_SPORE -1"], "zoom": 35, "focus": "monster 4053", "expect": "class 4053", "wait": 3
+    },
+    {
+      "id": "deniro-larva", "group": "Custom monsters", "title": "Deniro Larva (Rebuild custom monster)",
+      "look": "Doddler's own sprite. A pack built from clients alone shows the adult Deniro here (next shot).",
+      "commands": ["/killall", "/summon DENIRO_LARVA -1"], "zoom": 35, "focus": "monster 6010", "expect": "class 6010", "wait": 3,
+      "files": ["sprite/몬스터/deniro_larva.spr", "sprite/몬스터/deniro_larva.act"]
+    },
+    {
+      "id": "deniro", "group": "Custom monsters", "title": "Deniro, for comparison",
+      "look": "The stand-in a clients-only pack uses for Deniro Larva.",
+      "commands": ["/killall", "/summon DENIRO -1"], "zoom": 35, "focus": "monster 4072", "expect": "class 4072", "wait": 3
+    },
+    {
+      "id": "piere-larva", "group": "Custom monsters", "title": "Piere Larva (Rebuild custom monster)",
+      "look": "Doddler's own sprite. A pack built from clients alone shows the adult Piere here (next shot).",
+      "commands": ["/killall", "/summon PIERE_LARVA -1"], "zoom": 35, "focus": "monster 6011", "expect": "class 6011", "wait": 3,
+      "files": ["sprite/몬스터/piere_larva.spr", "sprite/몬스터/piere_larva.act"]
+    },
+    {
+      "id": "piere", "group": "Custom monsters", "title": "Piere, for comparison",
+      "look": "The stand-in a clients-only pack uses for Piere Larva.",
+      "commands": ["/killall", "/summon PIERE -1"], "zoom": 35, "focus": "monster 4073", "expect": "class 4073", "wait": 3
+    },
+    {
+      "id": "andre-larva", "group": "Custom monsters", "title": "Andre Larva (Rebuild custom monster)",
+      "look": "Doddler's sprite, which is identical to kRO's own andre_larva.",
+      "commands": ["/killall", "/summon ANDRE_LARVA -1"], "zoom": 35, "focus": "monster 6009", "expect": "class 6009", "wait": 3,
+      "files": ["sprite/몬스터/andre_larva.spr"]
+    },
+    {
+      "id": "soldier-andre", "group": "Custom monsters", "title": "Soldier Andre (Rebuild custom monster)",
+      "look": "Doddler's sprite, which is identical to kRO's own soldier_andre.",
+      "commands": ["/killall", "/summon SOLDIER_ANDRE -1"], "zoom": 35, "focus": "monster 6006", "expect": "class 6006", "wait": 3,
+      "files": ["sprite/몬스터/soldier_andre.spr"]
+    },
+    {
+      "id": "soldier-deniro", "group": "Custom monsters", "title": "Soldier Deniro (Rebuild custom monster)",
+      "look": "Doddler's sprite. kRO's file with this name is an unrelated monster that shows as a black silhouette; this one should be drawn in colour.",
+      "commands": ["/killall", "/summon SOLDIER_DENIRO -1"], "zoom": 35, "focus": "monster 6007", "expect": "class 6007", "wait": 3,
+      "files": ["sprite/몬스터/soldier_deniro.spr", "sprite/몬스터/soldier_deniro.act"]
+    },
+    {
+      "id": "soldier-piere", "group": "Custom monsters", "title": "Soldier Piere (Rebuild custom monster)",
+      "look": "Doddler's sprite. kRO's file with this name is an unrelated monster that shows as a black silhouette; this one should be drawn in colour.",
+      "commands": ["/killall", "/summon SOLDIER_PIERE -1"], "zoom": 35, "focus": "monster 6008", "expect": "class 6008", "wait": 3,
+      "files": ["sprite/몬스터/soldier_piere.spr", "sprite/몬스터/soldier_piere.act"]
+    },
+    {
+      "id": "raptice", "group": "Custom monsters", "title": "Raptice (Rebuild custom monster)",
+      "look": "Doddler's sprite, which has more animation frames than kRO's raptice (a still can't show them).",
+      "commands": ["/killall", "/summon RAPTICE -1"], "zoom": 35, "focus": "monster 6004", "expect": "class 6004", "wait": 3,
+      "files": ["sprite/몬스터/raptice.spr", "sprite/몬스터/raptice.act"]
+    },
+    {
+      "id": "werewolf", "group": "Custom monsters", "title": "Werewolf (Rebuild custom monster)",
+      "look": "Doddler's sprite, which has more animation frames than kRO's were_wolf (a still can't show them).",
+      "commands": ["/killall", "/summon WERE_WOLF -1"], "zoom": 35, "focus": "monster 6003", "expect": "class 6003", "wait": 3,
+      "files": ["sprite/몬스터/were_wolf.spr", "sprite/몬스터/were_wolf.act"]
+    },
+    {
+      "id": "verit", "group": "Custom monsters", "title": "Verit (stand-in sprite)",
+      "look": "No client ships a verit sprite. kRO's mutant_verit stands in; it is pixel-identical to the Verit in Doddler's release.",
+      "commands": ["/killall", "/summon VERIT -1"], "zoom": 35, "focus": "monster 4133", "expect": "class 4133", "wait": 3,
+      "files": ["sprite/몬스터/verit.spr", "sprite/몬스터/verit.act"]
+    },
+
+    {
+      "id": "koko-blessing", "group": "Collection art", "title": "Blessing Scroll",
+      "look": "The picture in the box is collection art no client has (koko_blss_solo.bmp). Without it the window shows a default picture.",
+      "commands": ["/killall"], "item": 12215, "focus": "item", "expect": "picture Blessing_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_blss_solo.bmp"]
+    },
+    {
+      "id": "koko-party-blessing", "group": "Collection art", "title": "Party Blessing Scroll",
+      "look": "Collection art koko_blss_prty.bmp, in no client.",
+      "item": 14588, "focus": "item", "expect": "picture Party_Blessing_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_blss_prty.bmp"]
+    },
+    {
+      "id": "koko-agi", "group": "Collection art", "title": "Increase Agi Scroll",
+      "look": "Collection art koko_inca_solo.bmp, in no client.",
+      "item": 12216, "focus": "item", "expect": "picture Increase_Agi_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_inca_solo.bmp"]
+    },
+    {
+      "id": "koko-party-agi", "group": "Collection art", "title": "Party Increase Agi Scroll",
+      "look": "Collection art koko_inca_prty.bmp, in no client.",
+      "item": 14589, "focus": "item", "expect": "picture Party_Increase_Agi_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_inca_prty.bmp"]
+    },
+    {
+      "id": "koko-aspersio", "group": "Collection art", "title": "Aspersio Scroll",
+      "look": "Collection art koko_aspr.bmp, in no client.",
+      "item": 12217, "focus": "item", "expect": "picture Aspersio_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_aspr.bmp"]
+    },
+    {
+      "id": "koko-assumptio", "group": "Collection art", "title": "Assumptio Scroll",
+      "look": "Collection art koko_assu_solo.bmp, in no client.",
+      "item": 12218, "focus": "item", "expect": "picture Assumptio_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_assu_solo.bmp"]
+    },
+    {
+      "id": "koko-party-assumptio", "group": "Collection art", "title": "Party Assumptio Scroll",
+      "look": "Collection art koko_assu_prty.bmp, in no client.",
+      "item": 14590, "focus": "item", "expect": "picture Party_Assumptio_Scroll", "wait": 3,
+      "files": ["texture/유저인터페이스/collection/koko_assu_prty.bmp"]
+    },
+
+    {
+      "id": "prt_fild08", "group": "Maps", "title": "prt_fild08, Doddler's edited version",
+      "look": "His edited field south of Prontera, from his release (clients ship it without his changes). The server uses his walk file for it.",
+      "warp": "prt_fild08 160 353", "zoom": 90, "wholeMinimap": true, "expect": "map prt_fild08", "wait": 6,
+      "files": ["prt_fild08.gat", "prt_fild08.gnd", "prt_fild08.rsw"]
+    },
+    {
+      "id": "que_qsch01", "group": "Maps", "title": "Okolnir (que_qsch01) and its music",
+      "look": "Doddler's edited Okolnir (every client's copy is 2,837 cells off his) and its track ToS-3rdWave.flac, which no client has. 'Playing' below should list ToS-3rdWave.",
+      "warp": "que_qsch01 114 164", "zoom": 90, "wholeMinimap": true, "expect": "ToS-3rdWave", "wait": 12,
+      "files": ["que_qsch01.gat", "que_qsch01.gnd", "que_qsch01.rsw", "bgm/ToS-3rdWave.flac"]
+    },
+    {
+      "id": "2009rwc_03", "group": "Maps", "title": "Debug room (2009rwc_03)",
+      "look": "The one client map no client ships, from Doddler's release. Without it the client can't render this map at all.",
+      "warp": "2009rwc_03", "zoom": 90, "wholeMinimap": true, "expect": "map 2009rwc_03", "wait": 8,
+      "files": ["2009rwc_03.gat", "2009rwc_03.gnd", "2009rwc_03.rsw"]
+    },
+    {
+      "id": "izlude", "group": "Maps", "title": "Izlude, the release's version",
+      "look": "The old Izlude Rebuild uses (268x268, from a 2009 client), not kRO's 2014 redesign (268x300). The client rounds walk data up to 16-cell chunks, so it measures 272x272 (the redesign would be 272x304). The boxed minimap shows the whole town.",
+      "warp": "izlude 94 103", "zoom": 90, "wholeMinimap": true, "focus": "minimap", "expect": "izlude 272x272", "wait": 8,
+      "files": ["izlude.gat", "izlude.gnd", "izlude.rsw"]
+    },
+    {
+      "id": "alberta", "group": "Maps", "title": "Alberta, the release's version",
+      "look": "Alberta as the release has it, from a 2009 client; kRO has redrawn it since.",
+      "warp": "alberta 117 56", "zoom": 90, "wholeMinimap": true, "focus": "minimap", "expect": "map alberta", "wait": 8,
+      "files": ["alberta.gat", "alberta.gnd", "alberta.rsw"]
+    },
+    {
+      "id": "moc_ruins", "group": "Maps", "title": "Morroc ruins (moc_ruins), the release's version",
+      "look": "moc_ruins as the release has it, from an old English client; kRO has redrawn it since.",
+      "warp": "moc_ruins 156 42", "zoom": 90, "wholeMinimap": true, "focus": "minimap", "expect": "map moc_ruins", "wait": 8,
+      "files": ["moc_ruins.gat", "moc_ruins.gnd", "moc_ruins.rsw"]
+    },
+    {
+      "id": "payon", "group": "Maps", "title": "Payon, the closest copy to the release",
+      "look": "kRO has redrawn Payon since the release; the pack takes the copy closest to it.",
+      "warp": "payon 161 58", "zoom": 90, "wholeMinimap": true, "focus": "minimap", "expect": "map payon", "wait": 8,
+      "files": ["payon.gat", "payon.gnd", "payon.rsw"]
+    },
+    {
+      "id": "payon_p", "group": "Maps", "title": "Old Payon (payon_p), a renamed map",
+      "look": "kRO calls it 1@exsh; the pack found it by its layout, rewrote its RSW 2.6 as 2.1 and cleared its GAT 1.3 water flags. It should render, and the shot stands by its water.",
+      "warp": "payon_p", "nearWater": true, "zoom": 90, "wholeMinimap": true, "expect": "map payon_p", "wait": 8,
+      "files": ["payon_p.gat", "payon_p.gnd", "payon_p.rsw"]
+    },
+    {
+      "id": "pvp_n_1-5", "group": "Maps", "title": "pvp_n_1-5, a renamed map",
+      "look": "kRO calls it job_knight; the pack found it by its layout and gave it Rebuild's name.",
+      "warp": "pvp_n_1-5 99 93", "zoom": 90, "wholeMinimap": true, "expect": "map pvp_n_1-5", "wait": 8,
+      "files": ["pvp_n_1-5.gat", "pvp_n_1-5.gnd", "pvp_n_1-5.rsw"]
+    },
+
+    {
+      "id": "blind", "group": "Status icon", "title": "Blind status icon",
+      "look": "The boxed icon is the original Blind icon (hl_blind.tga) from Doddler's release; a clients-only pack shows Deep Blind's icon. The screen also darkens around the character.",
+      "warp": "prt_fild08 160 353", "commands": ["/hide off", "/status Blind 30"], "zoom": 40, "focus": "status Blind", "wait": 3,
+      "files": ["texture/effect/hl_blind.tga"]
+    }
+  ],
+  "sounds": [
+    { "title": "inspiration.wav (a potion effect)", "file": "wav/inspiration.wav", "project": "RebuildClient/Assets/Sounds/inspiration.wav", "same": "RebuildClient/Assets/Sounds/effect/lg_inspiration.wav",
+      "note": "No client has it; kRO's lg_inspiration.wav stands in." },
+    { "title": "spore_move.wav (Spore, Deathspore and Fungus moving)", "file": "wav/spore_move.wav", "project": "RebuildClient/Assets/Sounds/spore_move.wav", "same": "RebuildClient/Assets/Sounds/spore_move1.wav",
+      "note": "No client has it; kRO's spore_move1.wav stands in." },
+    { "title": "se_frog02.wav (an ADPCM sound)", "file": "wav/se_frog02.wav", "project": "RebuildClient/Assets/Sounds/se_frog02.wav",
+      "note": "kRO ships it as MS ADPCM, which Unity can't import, so the pack decodes it to 16-bit PCM." },
+    { "title": "ToS-3rdWave.flac (Okolnir's music)", "file": "bgm/ToS-3rdWave.flac", "project": "RebuildClient/Assets/Music/ToS-3rdWave.flac",
+      "note": "\"3rd Wave\" by Questrosound, from the Tree of Savior soundtrack. Only Doddler's release has it." }
+  ],
+  "serverOnly": [
+    { "map": "pvp_n_1-4", "note": "No client map: the server walks it, the client never loads it. In kRO clients it's job_priest." },
+    { "map": "guild_room", "note": "No client map. In kRO clients it's quiz_01, which matches apart from water flags." },
+    { "map": "aldeg_cas01", "note": "No client map (its War of Emperium instance is switched off in Instances.csv)." }
+  ],
+  "notShown": [
+    "Sprite sound events: every ACT's sounds are checked at the path the importer loads; the two stand-ins are under Sounds.",
+    "Unpaired sprite halves (an .act without its .spr, or the reverse) are left out of the pack; they would only cause import errors.",
+    "System files (Thumbs.db, desktop.ini, .DS_Store, .sfk) are skipped.",
+    "fogparametertable.txt and mapobjlighttable.txt are in the pack; the map importer reads them for each map's fog and model lights.",
+    "The Memory Book shield has no worn sprite in any client, so nothing is drawn when it's equipped, as in kRO."
+  ]
+}

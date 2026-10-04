@@ -885,6 +885,9 @@ Ragnarok Rebuild fork helper  (run from the repo root as: .\rr <command> [target
    play                 Launch the built client
    smoke                End-to-end check: server + built client create an account and a character,
                         enter the world and save a screenshot (workDir\smoke)
+   showcase [dir]       Captioned screenshots of every file the pack adds, stands in or fixes, on one
+                        page with what to look at in each (workDir\showcase\<time>\index.html).
+                        Given an earlier run's folder, only rewrites its page
    release [dir]        Shareable release (workDir\release): the player build, a self-contained
                         server with its data and walk data, Play.cmd, readme and version.txt,
                         checked with its own server and client, then 7z'd. -NoBuild reuses the
@@ -2033,10 +2036,11 @@ function Invoke-Smoke {
     Invoke-SmokeTest $exe $server "smoke"
 }
 
-# Runs the client's -rrSmokeTest against port 5000. $server (File, Arguments, Dir, WalkData) is
-# started first and stopped afterwards; without it the test uses the server already listening.
-# -Strict fails on error lines in the player log instead of listing them.
-function Invoke-SmokeTest([string]$exe, [hashtable]$server, [string]$prefix, [switch]$Strict) {
+# Runs the client's -rrSmokeTest against port 5000. $server (File, Arguments, Dir, WalkData, and Env
+# for settings of that run only) is started first and stopped afterwards; without it the test uses the
+# server already listening. -Strict fails on error lines in the player log instead of listing them.
+function Invoke-SmokeTest([string]$exe, [hashtable]$server, [string]$prefix, [switch]$Strict,
+    [string]$ClientArgs, [int]$Minutes = 15, [int[]]$Screen = @(1280, 720)) {
     $cfg = Read-Config
     $outDir = if ($cfg.workDir) { Join-Path $cfg.workDir "smoke" } else { Join-Path $UnityLogDir "smoke" }
     New-Item -ItemType Directory -Force $outDir | Out-Null
@@ -2050,11 +2054,15 @@ function Invoke-SmokeTest([string]$exe, [hashtable]$server, [string]$prefix, [sw
         if ($server) {
             Write-Step "Starting the server for the smoke test (log: $serverLog)"
             if ($server.WalkData) { $env:ServerDataConfig__WalkPathData = $server.WalkData }
+            if ($server.Env) { foreach ($k in $server.Env.Keys) { Set-Item "Env:\$k" $server.Env[$k] } }
             $start = @{ FilePath = $server.File; WorkingDirectory = $server.Dir; RedirectStandardOutput = $serverLog; RedirectStandardError = "$serverLog.err"; WindowStyle = "Hidden"; PassThru = $true }
             if ($server.Arguments) { $start.ArgumentList = $server.Arguments }
-            $proc = Start-Process @start
+            try { $proc = Start-Process @start }
+            finally {
+                Remove-Item Env:\ServerDataConfig__WalkPathData -ErrorAction SilentlyContinue
+                if ($server.Env) { foreach ($k in $server.Env.Keys) { Remove-Item "Env:\$k" -ErrorAction SilentlyContinue } }
+            }
             Write-State "smoke-server" @{ pid = $proc.Id; stamp = (Get-ProcessStamp $proc.Id) }
-            Remove-Item Env:\ServerDataConfig__WalkPathData -ErrorAction SilentlyContinue
             $deadline = (Get-Date).AddMinutes(4)
             while (-not (Test-Port 5000)) {
                 if ($proc.HasExited -or (Get-Date) -gt $deadline) { Fail "server did not start; see $serverLog" }
@@ -2064,10 +2072,10 @@ function Invoke-SmokeTest([string]$exe, [hashtable]$server, [string]$prefix, [sw
         }
 
         Write-Step "Running the client smoke test (log: $playerLog)"
-        $clientArgs = "-rrSmokeTest -rrSmokeShot `"$shot`" -logFile `"$playerLog`" -screen-fullscreen 0 -screen-width 1280 -screen-height 720"
+        $clientArgs = "-rrSmokeTest -rrSmokeShot `"$shot`" -logFile `"$playerLog`" -screen-fullscreen 0 -screen-width $($Screen[0]) -screen-height $($Screen[1]) $ClientArgs"
         $client = Start-Process -FilePath $exe -ArgumentList $clientArgs -PassThru
         $null = $client.Handle
-        if (-not $client.WaitForExit(15 * 60 * 1000)) { $client.Kill(); Fail "client did not finish within 15 minutes" }
+        if (-not $client.WaitForExit($Minutes * 60 * 1000)) { $client.Kill(); Fail "client did not finish within $Minutes minutes" }
         $lines = @(Get-Content $playerLog -ErrorAction SilentlyContinue)
         $lines | Where-Object { $_ -match '\[SmokeTest\]' } | ForEach-Object { Write-Host "    | $_" }
         # Only errors up to the verdict count: logging out makes websocket-sharp log a Fatal when the
@@ -2081,12 +2089,185 @@ function Invoke-SmokeTest([string]$exe, [hashtable]$server, [string]$prefix, [sw
         }
         if ($client.ExitCode -ne 0) { Fail "smoke test failed (exit $($client.ExitCode)); logs in $outDir" }
         if ($Strict -and $errors.Count -gt 0) { Fail "smoke test passed but logged errors; see $playerLog" }
-        Write-Ok "smoke test passed; screenshot: $shot"
+        if (Test-Path -LiteralPath $shot) { Write-Ok "smoke test passed; screenshot: $shot" } else { Write-Ok "smoke test passed" }
     }
     finally {
         Remove-Item Env:\ServerDataConfig__WalkPathData -ErrorAction SilentlyContinue
         if ($proc) { & taskkill /PID $proc.Id /T /F 2>&1 | Out-Null; Clear-State "smoke-server" }
     }
+}
+
+# Screenshots of everything the pack adds, stands in or fixes (setup\showcase.json), to check by eye.
+# The server it starts allows /adminify with a passcode made up for this run only; the player build
+# runs the plan, and the shots go on a page with what the client measured and where each file came from.
+function Invoke-Showcase {
+    $cfg = Read-Config
+    $plan = Join-Path $SetupDir "showcase.json"
+    if ($Target) {
+        $dir = Resolve-RepoPath $Target
+        if (-not (Test-Path -LiteralPath (Join-Path $dir "shots.jsonl"))) { Fail "$Target has no shots.jsonl; pass a folder an earlier 'rr showcase' wrote" }
+        Write-Ok "showcase: $(Write-ShowcasePage $plan $dir $cfg)"
+        return
+    }
+    if (-not (Get-LockOwner)) { Complete-BuildSwap (Get-BuildDirs $cfg.buildOutput) }
+    $exe = Join-Path (Resolve-RepoPath $cfg.buildOutput) "RebuildClient.exe"
+    if (-not (Test-Path $exe)) { Fail "No build at $exe. Run 'rr build-client'." }
+    if (Test-Port 5000) { Fail "port 5000 is in use. The showcase starts its own server with admin commands on; stop the running one first." }
+    Assert-Tools @("dotnet") "The server"
+    $root = if ($cfg.workDir) { Join-Path $cfg.workDir "showcase" } else { Join-Path $UnityLogDir "showcase" }
+    $outDir = Join-Path $root (Get-Date -Format "yyyyMMdd-HHmmss")
+    $pass = [guid]::NewGuid().ToString("N")
+    $packWalk = if ($cfg.packDir) { Join-Path $cfg.packDir "walkdata" } else { $null }
+    $server = @{ File = "dotnet"; Arguments = "run --launch-profile $($cfg.serverLaunchProfile)"; Dir = $ServerProjectDir
+        WalkData = $(if ($packWalk -and (Test-Path $packWalk)) { $packWalk })
+        Env = @{ ServerOperationConfig__AllowAdminifyCommand = "true"; ServerOperationConfig__AdminifyPasscode = $pass } }
+    Invoke-SmokeTest $exe $server "showcase" -ClientArgs "-rrShowcase `"$plan`" -rrShowcaseOut `"$outDir`" -rrShowcasePass $pass" -Minutes 30 -Screen 1600, 900
+    if (-not (Test-Path -LiteralPath (Join-Path $outDir "shots.jsonl"))) { Fail "the player build predates the showcase; run 'rr build-client', then 'rr showcase' again" }
+    $page = Write-ShowcasePage $plan $outDir $cfg
+    Write-Ok "showcase: $page"
+}
+
+function Get-WalkSize([string]$file) {
+    if (-not (Test-Path -LiteralPath $file)) { return $null }
+    $stream = [IO.File]::OpenRead($file)
+    try { $reader = New-Object IO.BinaryReader($stream); return "{0}x{1}" -f $reader.ReadInt32(), $reader.ReadInt32() }
+    finally { $stream.Dispose() }
+}
+
+function Get-WavFormat([string]$file) {
+    $b = [IO.File]::ReadAllBytes($file)
+    $i = 12
+    while ($i + 24 -le $b.Length) {
+        $len = [BitConverter]::ToInt32($b, $i + 4)
+        if ([Text.Encoding]::ASCII.GetString($b, $i, 4) -eq "fmt ") {
+            $tag = [BitConverter]::ToUInt16($b, $i + 8)
+            $name = switch ($tag) { 1 { "PCM" } 2 { "MS ADPCM" } 17 { "IMA ADPCM" } default { "format $tag" } }
+            return "$name, $([BitConverter]::ToUInt16($b, $i + 22))-bit, $([BitConverter]::ToInt32($b, $i + 12)) Hz"
+        }
+        if ($len -lt 0) { break }
+        $i += 8 + $len + ($len % 2)
+    }
+    return "no fmt chunk"
+}
+
+function Write-ShowcasePage([string]$planFile, [string]$outDir, $cfg) {
+    $h = { param($s) [System.Net.WebUtility]::HtmlEncode([string]$s) }
+    $plan = Get-Content -LiteralPath $planFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    $results = @(Get-Content -LiteralPath (Join-Path $outDir "shots.jsonl") -Encoding UTF8 | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json })
+    $planShots = @{}
+    foreach ($s in $plan.shots) { $planShots[$s.id] = $s }
+    # Only the entries the page names: Windows PowerShell's ConvertFrom-Json can't take the whole manifest.
+    $manifest = @{}
+    $manifestFile = if ($cfg.packDir) { Join-Path $cfg.packDir "manifest.json" } else { $null }
+    if ($manifestFile -and (Test-Path -LiteralPath $manifestFile)) {
+        $text = [IO.File]::ReadAllText($manifestFile, [Text.Encoding]::UTF8)
+        foreach ($p in @($plan.shots | ForEach-Object { $_.files }) + @($plan.sounds | ForEach-Object { $_.file })) {
+            if (-not $p -or $manifest.ContainsKey($p)) { continue }
+            $m = [regex]::Match($text, '\{"Path":"' + [regex]::Escape($p) + '"[^{}]*\}')
+            if ($m.Success) { $manifest[$p] = $m.Value | ConvertFrom-Json }
+        }
+    }
+    $packWalk = if ($cfg.packDir) { Join-Path $cfg.packDir "walkdata" } else { $null }
+    $refWalk = $cfg.referenceWalk
+    $fileUri = { param($p) ([uri](Resolve-RepoPath $p)).AbsoluteUri }
+
+    $provenance = {
+        param($paths)
+        $rows = foreach ($p in @($paths | Where-Object { $_ })) {
+            $e = $manifest[$p]
+            if (-not $e) { "<li><code>$(& $h $p)</code>: <span class='bad'>not in the pack</span></li>"; continue }
+            $from = if ($e.SourcePath -and $e.SourcePath -ne $e.Path) { "$($e.Source), as <code>$(& $h $e.SourcePath)</code>" } else { $e.Source }
+            $note = if ($e.Note) { ". $(& $h $e.Note)" } else { "" }
+            "<li><code>$(& $h $p)</code>: from $from$note</li>"
+        }
+        if ($rows) { "<ul class='files'>$($rows -join '')</ul>" } else { "" }
+    }
+    $walkCheck = {
+        param($map)
+        if (-not $map -or -not $packWalk) { return "" }
+        $server = Join-Path $packWalk "$map.walk"
+        if (-not (Test-Path -LiteralPath $server)) { return "server walk file: <span class='bad'>missing</span>" }
+        $text = "server walk file $(Get-WalkSize $server)"
+        $release = if ($refWalk) { Join-Path $refWalk "$map.walk" } else { $null }
+        if ($release -and (Test-Path -LiteralPath $release)) {
+            $same = (Get-FileHash -LiteralPath $server).Hash -eq (Get-FileHash -LiteralPath $release).Hash
+            $text += if ($same) { ", <span class='ok'>identical to Doddler's release</span>" } else { ", <span class='bad'>differs from Doddler's release</span>" }
+        }
+        return $text
+    }
+
+    $flagged = @($results | Where-Object { $_.error }).Count
+    $body = New-Object System.Collections.Generic.List[string]
+    $groups = [ordered]@{}
+    foreach ($r in $results) { if (-not $groups.Contains($r.group)) { $groups[$r.group] = New-Object System.Collections.Generic.List[object] }; $groups[$r.group].Add($r) }
+    $links = (@($groups.Keys) + @("Sounds", "Server only", "Not shown")) | ForEach-Object { "<a href='#$(& $h ($_ -replace '\W', '-'))'>$(& $h $_)</a>" }
+    $body.Add("<nav>$($links -join ' ')</nav>")
+    foreach ($g in $groups.Keys) {
+        $body.Add("<h2 id='$(& $h ($g -replace '\W', '-'))'>$(& $h $g)</h2><div class='grid'>")
+        foreach ($r in $groups[$g]) {
+            $p = $planShots[$r.id]
+            $facts = @()
+            if ($r.subject) { $facts += "subject: $(& $h $r.subject)" }
+            if ($r.map) { $facts += "map <code>$(& $h $r.map)</code>" + $(if ($r.size) { " $($r.size), $($r.water) water cells" } else { "" }) }
+            if ($r.audio) { $facts += "playing: $(& $h $r.audio)" }
+            if (@($p.files) -match '\.gat$') { $w = & $walkCheck $r.map; if ($w) { $facts += $w } }
+            $check = if ($r.error) { "<p class='bad'>Check: $(& $h $r.error)</p>" } elseif ($p.expect) { "<p class='ok'>Check passed: found &ldquo;$(& $h $p.expect)&rdquo;</p>" } else { "" }
+            $body.Add(@"
+<figure><a href='$(& $h $r.file)'><img src='$(& $h $r.file)' loading='lazy'></a>
+<figcaption><b>$(& $h $r.file.Substring(0, 2)). $(& $h $r.title)</b><p>$(& $h $r.look)</p>
+<p class='facts'>Measured in game: $($facts -join ' &middot; ')</p>$check$(& $provenance $p.files)</figcaption></figure>
+"@)
+        }
+        $body.Add("</div>")
+    }
+
+    $body.Add("<h2 id='Sounds'>Sounds</h2><p>A still can't show these; the players below are the project's own copies, the ones the game plays.</p><table><tr><th>Sound</th><th>Listen</th><th>Checked</th></tr>")
+    foreach ($s in $plan.sounds) {
+        $file = Resolve-RepoPath $s.project
+        $checks = @()
+        if (-not (Test-Path -LiteralPath $file)) { $checks += "<span class='bad'>not in the project</span>" }
+        else {
+            if ($file -match '\.wav$') { $checks += "format: $(Get-WavFormat $file)" }
+            if ($s.same) {
+                $other = Resolve-RepoPath $s.same
+                $same = (Test-Path -LiteralPath $other) -and (Get-FileHash -LiteralPath $file).Hash -eq (Get-FileHash -LiteralPath $other).Hash
+                $checks += if ($same) { "<span class='ok'>same bytes as <code>$(& $h (Split-Path $other -Leaf))</code></span>" } else { "<span class='bad'>differs from <code>$(& $h (Split-Path $other -Leaf))</code></span>" }
+            }
+        }
+        $body.Add("<tr><td><b>$(& $h $s.title)</b><br>$(& $h $s.note)$(& $provenance @($s.file))</td><td><audio controls preload='none' src='$(& $fileUri $s.project)'></audio></td><td>$($checks -join '<br>')</td></tr>")
+    }
+    $body.Add("</table>")
+
+    $body.Add("<h2 id='Server-only'>Server only</h2><p>These maps have no client scene, so there's nothing to see in game. The server's walk file is what matters.</p><table><tr><th>Map</th><th>Note</th><th>Checked</th></tr>")
+    foreach ($m in $plan.serverOnly) { $body.Add("<tr><td><code>$(& $h $m.map)</code></td><td>$(& $h $m.note)</td><td>$(& $walkCheck $m.map)</td></tr>") }
+    $body.Add("</table>")
+
+    $report = if ($cfg.packDir) { Join-Path $cfg.packDir "report.html" } else { $null }
+    $reportLink = if ($report -and (Test-Path -LiteralPath $report)) { " The pack report lists them: <a href='$(([uri]$report).AbsoluteUri)'>report.html</a>." } else { "" }
+    $body.Add("<h2 id='Not-shown'>Not shown</h2><p>Fixes with nothing to see in game.$reportLink</p><ul>$((@($plan.notShown) | ForEach-Object { "<li>$(& $h $_)</li>" }) -join '')</ul>")
+
+    $summary = "$($results.Count) shots" + $(if ($flagged) { ", <span class='bad'>$flagged flagged</span>" } else { ", <span class='ok'>all checks passed</span>" })
+    $html = @"
+<!doctype html><html><head><meta charset='utf-8'><title>Rebuild showcase $(Split-Path $outDir -Leaf)</title><style>
+body{font:15px/1.5 system-ui,sans-serif;margin:0 auto;max-width:1500px;padding:0 24px 60px;background:#111;color:#ddd}
+h1{margin:24px 0 4px}h2{margin-top:40px;border-bottom:1px solid #333;padding-bottom:4px}
+nav{position:sticky;top:0;background:#111;padding:8px 0;border-bottom:1px solid #333;z-index:1}nav a{margin-right:14px}
+a{color:#8bf}code{background:#222;padding:1px 4px;border-radius:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(680px,1fr));gap:24px}
+figure{margin:0;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden}
+figure img{width:100%;display:block}figcaption{padding:10px 14px}figcaption p{margin:6px 0}
+.facts{color:#aaa;font-size:13px}.files{font-size:13px;color:#aaa;margin:6px 0;padding-left:18px}
+.ok{color:#7d7}.bad{color:#f77;font-weight:600}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #333;padding:8px;vertical-align:top;text-align:left}
+</style></head><body>
+<h1>Ragnarok Rebuild showcase</h1>
+<p>$(Get-Date -Format "yyyy-MM-dd HH:mm") &middot; $summary &middot; Each screenshot has its caption at the bottom right and a yellow box around what to look at. Click a shot for full size.</p>
+$($body -join "`n")
+</body></html>
+"@
+    $page = Join-Path $outDir "index.html"
+    Write-TextAtomic $page $html
+    return $page
 }
 
 # Sets one value in a settings file that may carry // comments, keeping the comments.
@@ -2825,7 +3006,7 @@ function Get-InterruptedNotes {
 # ---------------------------------------------------------------------------------------------
 
 # Commands that change nothing another rr could be working on; they run alongside a long bake.
-$LockFreeCommands = @("help", "prereqs", "doctor", "disk", "server", "play", "smoke", "editor")
+$LockFreeCommands = @("help", "prereqs", "doctor", "disk", "server", "play", "smoke", "showcase", "editor")
 
 try {
     $cmd = $Command.ToLowerInvariant()
@@ -2872,6 +3053,7 @@ try {
         "build-client" { Invoke-Build }
         "play" { Invoke-Play }
         "smoke" { Invoke-Smoke }
+        "showcase" { Invoke-Showcase }
         "release" { Invoke-Release }
         "editor" { Invoke-Editor }
         "disk" { Invoke-Disk }

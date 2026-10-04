@@ -9,8 +9,10 @@ namespace Assets.Scripts.Automation
 {
     // Opt-in end-to-end check for player builds (used by `rr smoke`):
     //   RebuildClient.exe -rrSmokeTest [-rrSmokeServer ws://host:5000/ws] [-rrSmokeShot out.png]
+    //                     [-rrShowcase plan.json -rrShowcaseOut dir -rrShowcasePass code]
     // Creates a throwaway account and character through the real login flow, enters the world,
-    // saves a screenshot and quits with exit code 0 on success, 1 on failure. Inert without the flag.
+    // saves a screenshot (or runs the showcase plan, see RebuildShowcase) and quits with exit code 0
+    // on success, 1 on failure. Inert without the flag.
     public class RebuildSmokeTest : MonoBehaviour
     {
         private bool failed;
@@ -46,13 +48,31 @@ namespace Assets.Scripts.Automation
             yield return WaitFor(() => !string.IsNullOrEmpty(NetworkManager.Instance.CurrentMap), 120, "entered the world");
             if (failed) yield break;
 
-            // Give the map scene, lighting and nearby sprites time to stream in before the screenshot.
-            yield return new WaitForSecondsRealtime(20);
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(shot)));
-            ScreenCapture.CaptureScreenshot(shot);
-            yield return new WaitForSecondsRealtime(3);
+            var plan = Arg("-rrShowcase");
+            if (plan != null)
+            {
+                yield return new WaitForSecondsRealtime(10);
+                var outDir = Arg("-rrShowcaseOut") ?? Path.Combine(Application.persistentDataPath, "showcase");
+                var showcase = gameObject.AddComponent<RebuildShowcase>();
+                yield return showcase.Run(plan, outDir, Arg("-rrShowcasePass"));
+                if (showcase.Error != null)
+                {
+                    Fail(showcase.Error);
+                    yield break;
+                }
 
-            Log($"PASS map={NetworkManager.Instance.CurrentMap} screenshot={shot}");
+                Log($"PASS map={NetworkManager.Instance.CurrentMap} showcase={outDir}");
+            }
+            else
+            {
+                // Give the map scene, lighting and nearby sprites time to stream in before the screenshot.
+                yield return new WaitForSecondsRealtime(20);
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(shot)));
+                ScreenCapture.CaptureScreenshot(shot);
+                yield return new WaitForSecondsRealtime(3);
+
+                Log($"PASS map={NetworkManager.Instance.CurrentMap} screenshot={shot}");
+            }
             NetworkManager.Instance.Disconnect();
             yield return new WaitForSecondsRealtime(1);
             Application.Quit(0);
