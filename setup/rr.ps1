@@ -892,6 +892,10 @@ Ragnarok Rebuild fork helper  (run from the repo root as: .\rr <command> [target
                         server with its data and walk data, Play.cmd, readme and version.txt,
                         checked with its own server and client, then 7z'd. -NoBuild reuses the
                         current player build instead of building it
+   reset-release <dir>  Put a release folder (rr release's or Doddler's) back to unplayed: deletes the
+                        server's accounts, characters, login keys and logs, and the client's saved
+                        login, server address and settings, which every Rebuild client on this PC
+                        shares. Give Server\ or Client\ for one side only. Keeps appsettings.json
    editor               Open the project in the Unity Editor
 
  Housekeeping
@@ -2489,6 +2493,91 @@ function Invoke-Release {
     Write-Ok "archive: $archive ($(Format-Size (Get-Item -LiteralPath $archive).Length)), SHA-256 $hash"
 }
 
+# Paths in the server's settings are relative to its folder, where Play.cmd starts it.
+function Get-ReleaseStatePath([string]$serverDir, [string]$text, [string]$pattern, [string]$default) {
+    $value = if ($text -and $text -match $pattern) { $Matches[1].Trim() } else { $default }
+    return [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($serverDir, $value))
+}
+
+# What a release gathers once played: accounts, characters, login keys and logs in its server folder,
+# and the client's saved login, server address and settings. Unity keeps those per Windows user under
+# the company and product names in app.info, so every Rebuild client on this PC shares them (the
+# editor reads config.txt too). Settings in appsettings.json and the compiled script cache stay.
+function Invoke-ResetRelease {
+    if (-not $Target) { Fail "Give the release folder: rr reset-release <folder with Client and Server>" }
+    $root = [System.IO.Path]::GetFullPath($Target.Trim('"', ' ')).TrimEnd('\')
+    if (-not (Test-Path -LiteralPath $root -PathType Container)) { Fail "Not found: $root" }
+    if ($root -eq $RepoRoot -or $root.StartsWith("$RepoRoot\", [StringComparison]::OrdinalIgnoreCase)) {
+        Fail "$root is in this checkout. reset-release is for release folders: one 'rr release' made, or Doddler's, extracted."
+    }
+    $serverDir = @($root, (Join-Path $root "Server")) | Where-Object { Test-Path -LiteralPath (Join-Path $_ "RoRebuildServer.exe") } | Select-Object -First 1
+    $clientDir = @($root, (Join-Path $root "Client")) | Where-Object { Test-Path -LiteralPath (Join-Path $_ "RebuildClient.exe") } | Select-Object -First 1
+    if (-not $serverDir -and -not $clientDir) { Fail "$root isn't a release: it has no Server\RoRebuildServer.exe or Client\RebuildClient.exe." }
+
+    foreach ($p in @(Get-Process RoRebuildServer, RebuildClient -ErrorAction SilentlyContinue)) {
+        $exe = try { $p.Path } catch { $null }
+        if ($p.ProcessName -eq "RoRebuildServer" -and $serverDir -and $exe -and $exe.StartsWith("$serverDir\", [StringComparison]::OrdinalIgnoreCase)) {
+            Fail "The release's server is running (pid $($p.Id)). Stop it with Ctrl+C in its window first, so it saves and lets go of the database."
+        }
+        if ($p.ProcessName -eq "RebuildClient" -and $clientDir) {
+            Fail "A Rebuild client is running (pid $($p.Id), $exe). Close it first: clients share their settings, and it writes them back as it exits."
+        }
+    }
+
+    $items = @()
+    if ($serverDir) {
+        $settings = Get-Content -LiteralPath (Join-Path $serverDir "appsettings.json") -Raw -ErrorAction SilentlyContinue
+        $logging = Get-Content -LiteralPath (Join-Path $serverDir "appsettings.Logging.json") -Raw -ErrorAction SilentlyContinue
+        $db = Get-ReleaseStatePath $serverDir $settings '"DefaultConnection"\s*:\s*"[^"]*?(?:Filename|Data Source)\s*=\s*([^;"]+)' "RoCharacterDatabase.db"
+        $keys = Get-ReleaseStatePath $serverDir $settings '"KeyPersistencePath"\s*:\s*"([^"]+)"' "Keys/"
+        $logs = Split-Path (Get-ReleaseStatePath $serverDir $logging '"path"\s*:\s*"([^"]+)"' "Logs/log-.txt")
+        $items += @{ Label = "server accounts and characters"; Path = $db; Db = $true; Side = @(@("-wal", "-shm", "-journal") | ForEach-Object { "$db$_" } | Where-Object { Test-Path -LiteralPath $_ }) }
+        $items += @{ Label = "server login keys (saved logins stop working)"; Path = $keys }
+        $items += @{ Label = "server logs"; Path = $logs }
+        # Only what lies below the server folder: a logs folder of "." would be the server itself.
+        foreach ($i in $items) {
+            if (-not $i.Path.StartsWith("$serverDir\", [StringComparison]::OrdinalIgnoreCase)) { Write-Warn2 "the server's settings put its $($i.Label) at $($i.Path), not in a folder of its own inside $serverDir; left alone"; $i.Skip = $true }
+        }
+    }
+    if ($clientDir) {
+        $info = @(Get-Content -LiteralPath (Join-Path $clientDir "RebuildClient_Data\app.info") -ErrorAction SilentlyContinue)
+        $company = if ($info.Count -ge 2 -and $info[0].Trim()) { $info[0].Trim() } else { "Ragnarok" }
+        $product = if ($info.Count -ge 2 -and $info[1].Trim()) { $info[1].Trim() } else { "RebuildClient" }
+        $items += @{ Label = "client saved login, server address, last character, window and camera"; Path = "HKCU:\Software\$company\$product"; Registry = $true; Client = $true }
+        $data = Join-Path $env:USERPROFILE "AppData\LocalLow\$company\$product"
+        $items += @{ Label = "client options"; Path = (Join-Path $data "config.txt"); Client = $true }
+        foreach ($f in "Player.log", "Player-prev.log") { $items += @{ Label = "client log"; Path = (Join-Path $data $f); Client = $true } }
+    }
+    foreach ($i in $items) { if (-not $i.Side) { $i.Side = @() } }
+    $items = @($items | Where-Object { -not $_.Skip -and ((Test-Path -LiteralPath $_.Path) -or $_.Side) })
+    if ($items.Count -eq 0) { Write-Ok "$root is already as shipped: nothing to reset"; return }
+
+    # SQLite holds the file open while a server uses it, also one started some other way than its exe.
+    foreach ($f in @($items | Where-Object { $_.Db } | ForEach-Object { @($_.Path) + $_.Side }) | Where-Object { Test-Path -LiteralPath $_ }) {
+        try { [System.IO.File]::Open($f, "Open", "ReadWrite", "None").Dispose() }
+        catch { Fail "$f is in use. Stop the server that has it open first." }
+    }
+
+    Write-Step "Resetting $root"
+    foreach ($i in $items) {
+        $size = if ($i.Registry) { "$((Get-Item -LiteralPath $i.Path).ValueCount) values" } else { Format-Size ((@($i.Path) + $i.Side | ForEach-Object { Get-FolderBytes $_ } | Measure-Object -Sum).Sum) }
+        $side = if ($i.Side) { " and its $(($i.Side | ForEach-Object { $_.Substring($i.Path.Length) }) -join ', ')" } else { "" }
+        Write-Host "    $($i.Label): $($i.Path)$side ($size)"
+    }
+    if ($items | Where-Object { $_.Client }) { Write-Host "    The client part is per Windows user: every Rebuild client on this PC shares it, rr play and other releases too." }
+    if (-not (Confirm-Action "Delete these?")) { Write-Host "    Nothing changed."; return }
+
+    $failed = @()
+    foreach ($path in @($items | ForEach-Object { @($_.Path) + $_.Side })) {
+        if (-not (Test-Path -LiteralPath $path)) { continue }
+        try { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop }
+        catch { $failed += "$path ($($_.Exception.Message))" }
+    }
+    if ($failed.Count -gt 0) { Fail "couldn't remove $($failed -join '; '). Rerun once nothing holds them." }
+    if ($serverDir) { Write-Ok "server reset: it makes a new, empty database on its next start" }
+    if ($clientDir) { Write-Ok "client reset: it opens on an empty login screen with the default server and settings" }
+}
+
 function Invoke-Editor {
     $cli = Get-UnityCli
     if (-not $cli) { Fail "Unity CLI not installed. Run 'rr install-unity'." }
@@ -3006,7 +3095,7 @@ function Get-InterruptedNotes {
 # ---------------------------------------------------------------------------------------------
 
 # Commands that change nothing another rr could be working on; they run alongside a long bake.
-$LockFreeCommands = @("help", "prereqs", "doctor", "disk", "server", "play", "smoke", "showcase", "editor")
+$LockFreeCommands = @("help", "prereqs", "doctor", "disk", "server", "play", "smoke", "showcase", "reset-release", "editor")
 
 try {
     $cmd = $Command.ToLowerInvariant()
@@ -3055,6 +3144,7 @@ try {
         "smoke" { Invoke-Smoke }
         "showcase" { Invoke-Showcase }
         "release" { Invoke-Release }
+        "reset-release" { Invoke-ResetRelease }
         "editor" { Invoke-Editor }
         "disk" { Invoke-Disk }
         "library-link" { Invoke-LibraryLink }
